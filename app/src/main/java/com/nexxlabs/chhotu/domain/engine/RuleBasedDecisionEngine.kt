@@ -24,7 +24,9 @@ import javax.inject.Singleton
  * 5. UNKNOWN (no match)
  */
 @Singleton
-class RuleBasedDecisionEngine @Inject constructor() {
+class RuleBasedDecisionEngine @Inject constructor(
+    private val contactManager: ContactManager
+) {
     
     /**
      * Route a normalized command to the appropriate CommandIntent.
@@ -36,6 +38,8 @@ class RuleBasedDecisionEngine @Inject constructor() {
         val result = when {
             isSearchCommand(normalizedInput) -> parseSearchCommand(normalizedInput)
             isPlayMusicCommand(normalizedInput) -> parsePlayMusicCommand(normalizedInput)
+            isCallCommand(normalizedInput) -> parseCallCommand(normalizedInput)
+            isSMSCommand(normalizedInput) -> parseSMSCommand(normalizedInput)
             isSendWhatsAppCommand(normalizedInput) -> parseSendWhatsAppCommand(normalizedInput)
             isOpenAppCommand(normalizedInput) -> parseOpenAppCommand(normalizedInput)
             else -> CommandIntent.Unknown(normalizedInput)
@@ -87,6 +91,60 @@ class RuleBasedDecisionEngine @Inject constructor() {
             CommandIntent.Unknown(input)
         }
     }
+
+    // ==================== CALL COMMAND ====================
+
+    private fun isCallCommand(input: String): Boolean {
+        return input.startsWith("call ")
+    }
+
+    private fun parseCallCommand(input: String): CommandIntent {
+        // Pattern: "call <name>"
+        val name = input.replace("call ", "").trim()
+        if (name.isBlank()) return CommandIntent.Unknown(input)
+
+        val contact = contactManager.findContactByName(name)
+        return CommandIntent.CallContact(name, contact?.phoneNumber)
+    }
+
+    // ==================== SMS COMMAND ====================
+
+    private fun isSMSCommand(input: String): Boolean {
+        return (input.contains("text") || input.contains("sms")) && 
+               (input.contains("saying") || input.contains("say"))
+    }
+
+    private fun parseSMSCommand(input: String): CommandIntent {
+        // Pattern: "text <name> saying <message>"
+        // Pattern: "send sms to <name> saying <message>"
+        
+        val messageStartIndicators = listOf("saying ", "say ")
+        var message = ""
+        var recipientName = ""
+        
+        for (indicator in messageStartIndicators) {
+            val indicatorIndex = input.indexOf(indicator)
+            if (indicatorIndex != -1) {
+                message = input.substring(indicatorIndex + indicator.length).trim()
+                
+                val subBeforeMessage = input.substring(0, indicatorIndex).trim()
+                recipientName = subBeforeMessage
+                    .replace("send sms to", "")
+                    .replace("text to", "")
+                    .replace("text", "")
+                    .replace("sms", "")
+                    .trim()
+                break
+            }
+        }
+
+        return if (message.isNotBlank() && recipientName.isNotBlank()) {
+            val contact = contactManager.findContactByName(recipientName)
+            CommandIntent.SendSMS(message, recipientName, contact?.phoneNumber)
+        } else {
+            CommandIntent.Unknown(input)
+        }
+    }
     
     // ==================== WHATSAPP MESSAGE COMMAND ====================
     
@@ -103,7 +161,7 @@ class RuleBasedDecisionEngine @Inject constructor() {
         
         val messageStartIndicators = listOf("saying ", "say ", "that ")
         var message = ""
-        var recipient: String? = null
+        var recipientName: String? = null
         
         for (indicator in messageStartIndicators) {
             val indicatorIndex = input.indexOf(indicator)
@@ -113,15 +171,18 @@ class RuleBasedDecisionEngine @Inject constructor() {
                 // Try to extract recipient (text between "to" and "on whatsapp")
                 val toIndex = input.indexOf(" to ")
                 val onWhatsAppIndex = input.indexOf("on whatsapp")
+                if (onWhatsAppIndex == -1) input.indexOf("on whats app")
+                
                 if (toIndex != -1 && onWhatsAppIndex != -1 && toIndex < onWhatsAppIndex) {
-                    recipient = input.substring(toIndex + 4, onWhatsAppIndex).trim()
+                    recipientName = input.substring(toIndex + 4, onWhatsAppIndex).trim()
                 }
                 break
             }
         }
         
         return if (message.isNotBlank()) {
-            CommandIntent.SendWhatsAppMessage(message, recipient)
+            val phoneNumber = recipientName?.let { contactManager.findContactByName(it)?.phoneNumber }
+            CommandIntent.SendWhatsAppMessage(message, recipientName, phoneNumber)
         } else {
             CommandIntent.Unknown(input)
         }
@@ -142,3 +203,4 @@ class RuleBasedDecisionEngine @Inject constructor() {
         }
     }
 }
+

@@ -2,7 +2,9 @@ package com.nexxlabs.chhotu.di
 
 import com.nexxlabs.chhotu.execution.AppExecutor
 import com.nexxlabs.chhotu.execution.AppLaunchExecutor
+import com.nexxlabs.chhotu.execution.CallExecutor
 import com.nexxlabs.chhotu.execution.GoogleSearchExecutor
+import com.nexxlabs.chhotu.execution.SMSExecutor
 import com.nexxlabs.chhotu.execution.WhatsAppExecutor
 import com.nexxlabs.chhotu.execution.YouTubeMusicExecutor
 import dagger.Binds
@@ -33,6 +35,14 @@ abstract class ExecutorModule {
     @IntoSet
     abstract fun bindYouTubeMusicExecutor(impl: YouTubeMusicExecutor): AppExecutor
     
+    @Binds
+    @IntoSet
+    abstract fun bindCallExecutor(impl: CallExecutor): AppExecutor
+
+    @Binds
+    @IntoSet
+    abstract fun bindSMSExecutor(impl: SMSExecutor): AppExecutor
+
     @Binds
     @IntoSet
     abstract fun bindWhatsAppExecutor(impl: WhatsAppExecutor): AppExecutor

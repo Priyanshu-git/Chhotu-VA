@@ -31,11 +31,21 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var speechInputManager: SpeechInputManager
     
-    // Permission launcher
+    companion object {
+        private val REQUIRED_PERMISSIONS = arrayOf(
+            Manifest.permission.RECORD_AUDIO,
+            Manifest.permission.READ_CONTACTS,
+            Manifest.permission.CALL_PHONE,
+            Manifest.permission.SEND_SMS
+        )
+    }
+
+    // Permission launcher for multiple permissions
     private val permissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val recordAudioGranted = permissions[Manifest.permission.RECORD_AUDIO] ?: false
+        if (recordAudioGranted) {
             startSpeechRecognition()
         } else {
             Toast.makeText(
@@ -78,7 +88,7 @@ class MainActivity : ComponentActivity() {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     AssistantScreen(
                         viewModel = viewModel,
-                        onMicClick = { checkPermissionAndStartListening() },
+                        onMicClick = { checkPermissionsAndStartListening() },
                         modifier = Modifier.padding(innerPadding)
                     )
                 }
@@ -86,25 +96,27 @@ class MainActivity : ComponentActivity() {
         }
     }
     
-    private fun checkPermissionAndStartListening() {
-        when {
-            ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.RECORD_AUDIO
-            ) == PackageManager.PERMISSION_GRANTED -> {
-                startSpeechRecognition()
+    private fun checkPermissionsAndStartListening() {
+        val missingPermissions = REQUIRED_PERMISSIONS.filter {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }
+
+        if (missingPermissions.isEmpty()) {
+            startSpeechRecognition()
+        } else {
+            // Check if we should show rationale for any of the permissions
+            val shouldShowRationale = missingPermissions.any {
+                shouldShowRequestPermissionRationale(it)
             }
-            shouldShowRequestPermissionRationale(Manifest.permission.RECORD_AUDIO) -> {
+
+            if (shouldShowRationale) {
                 Toast.makeText(
                     this,
-                    "Microphone permission is needed to listen to your voice commands",
+                    "Some permissions are needed for the assistant to fully function",
                     Toast.LENGTH_LONG
                 ).show()
-                permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
             }
-            else -> {
-                permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-            }
+            permissionLauncher.launch(missingPermissions.toTypedArray())
         }
     }
     

@@ -30,16 +30,58 @@ sealed class CommandIntent {
     /**
      * Send a message via WhatsApp.
      * @param message The message content to send
-     * @param recipient Optional recipient name (for future use)
+     * @param recipientName Optional recipient name extracted from command
+     * @param phoneNumber Optional resolved phone number
      */
     data class SendWhatsAppMessage(
         val message: String,
-        val recipient: String? = null
+        val recipientName: String? = null,
+        val phoneNumber: String? = null
     ) : CommandIntent() {
         val feedbackMessage: String
-            get() = "Opening WhatsApp to send your message"
+            get() = if (recipientName != null) {
+                "Opening WhatsApp to send message to $recipientName"
+            } else {
+                "Opening WhatsApp to send your message"
+            }
     }
     
+    /**
+     * Initiate a phone call.
+     * @param recipientName The name of the person to call
+     * @param phoneNumber The resolved phone number
+     */
+    data class CallContact(
+        val recipientName: String,
+        val phoneNumber: String? = null
+    ) : CommandIntent() {
+        val feedbackMessage: String
+            get() = if (phoneNumber != null) {
+                "Calling $recipientName"
+            } else {
+                "Sorry, I couldn't find a phone number for $recipientName"
+            }
+    }
+
+    /**
+     * Send an SMS message.
+     * @param message The message content
+     * @param recipientName The name of the person to text
+     * @param phoneNumber The resolved phone number
+     */
+    data class SendSMS(
+        val message: String,
+        val recipientName: String,
+        val phoneNumber: String? = null
+    ) : CommandIntent() {
+        val feedbackMessage: String
+            get() = if (phoneNumber != null) {
+                "Sending SMS to $recipientName"
+            } else {
+                "Sorry, I couldn't find a phone number for $recipientName"
+            }
+    }
+
     /**
      * Open a specific app.
      * @param app The target app to open

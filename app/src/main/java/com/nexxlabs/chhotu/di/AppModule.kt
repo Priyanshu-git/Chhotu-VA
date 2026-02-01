@@ -3,6 +3,7 @@ package com.nexxlabs.chhotu.di
 import android.content.Context
 import com.nexxlabs.chhotu.domain.engine.CapabilityResolver
 import com.nexxlabs.chhotu.domain.engine.CommandNormalizer
+import com.nexxlabs.chhotu.domain.engine.ContactManager
 import com.nexxlabs.chhotu.domain.engine.RuleBasedDecisionEngine
 import com.nexxlabs.chhotu.speech.SpeechInputManager
 import com.nexxlabs.chhotu.speech.TTSFeedbackManager
@@ -31,8 +32,8 @@ object AppModule {
     
     @Provides
     @Singleton
-    fun provideRuleBasedDecisionEngine(): RuleBasedDecisionEngine {
-        return RuleBasedDecisionEngine()
+    fun provideRuleBasedDecisionEngine(contactManager: ContactManager): RuleBasedDecisionEngine {
+        return RuleBasedDecisionEngine(contactManager)
     }
     
     @Provides
