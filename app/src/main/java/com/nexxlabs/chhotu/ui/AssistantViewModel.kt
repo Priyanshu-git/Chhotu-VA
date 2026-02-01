@@ -37,6 +37,23 @@ class AssistantViewModel @Inject constructor(
     private val _commandHistory = MutableStateFlow<List<CommandHistoryItem>>(emptyList())
     val commandHistory: StateFlow<List<CommandHistoryItem>> = _commandHistory.asStateFlow()
     
+    private val _typedCommand = MutableStateFlow("")
+    val typedCommand: StateFlow<String> = _typedCommand.asStateFlow()
+
+    fun onTypedCommandChange(text: String) {
+        _typedCommand.value = text
+    }
+
+    fun onTypedCommandSubmit() {
+        val command = _typedCommand.value
+        if (command.isNotBlank()) {
+            viewModelScope.launch {
+                _typedCommand.value = ""
+                processCommand(command)
+            }
+        }
+    }
+
     /**
      * Called when entering listening state.
      */
