@@ -5,11 +5,13 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.nexxlabs.chhotu.domain.engine.CapabilityResolver
+import com.nexxlabs.chhotu.domain.model.CommandIntent
 import com.nexxlabs.chhotu.domain.model.SupportedApp
 import com.nexxlabs.chhotu.util.Constants
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.reflect.KClass
 
 /**
  * Executor for WhatsApp message commands.
@@ -20,7 +22,17 @@ import javax.inject.Singleton
 class WhatsAppExecutor @Inject constructor(
     @ApplicationContext private val context: Context,
     private val capabilityResolver: CapabilityResolver
-) {
+) : AppExecutor {
+    
+    override val supportedIntentTypes: Set<KClass<out CommandIntent>> = setOf(
+        CommandIntent.SendWhatsAppMessage::class
+    )
+    
+    override fun execute(intent: CommandIntent): ExecutionResult {
+        val whatsAppIntent = intent as? CommandIntent.SendWhatsAppMessage
+            ?: return ExecutionResult.Failure("Invalid intent type for WhatsAppExecutor")
+        return executeSendMessage(whatsAppIntent.message)
+    }
     
     /**
      * Execute WhatsApp share intent with the given message.
@@ -28,7 +40,7 @@ class WhatsAppExecutor @Inject constructor(
      * @param message The message content to share
      * @return ExecutionResult indicating success or failure
      */
-    fun execute(message: String): ExecutionResult {
+    private fun executeSendMessage(message: String): ExecutionResult {
         if (!capabilityResolver.isAppInstalled(SupportedApp.WHATSAPP)) {
             return ExecutionResult.AppNotInstalled(SupportedApp.WHATSAPP.displayName)
         }

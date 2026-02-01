@@ -7,11 +7,13 @@ import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import com.nexxlabs.chhotu.domain.engine.CapabilityResolver
+import com.nexxlabs.chhotu.domain.model.CommandIntent
 import com.nexxlabs.chhotu.domain.model.SupportedApp
 import com.nexxlabs.chhotu.util.Constants
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.reflect.KClass
 
 /**
  * Executor for Google Search commands.
@@ -21,10 +23,20 @@ import javax.inject.Singleton
 class GoogleSearchExecutor @Inject constructor(
     @ApplicationContext private val context: Context,
     private val capabilityResolver: CapabilityResolver
-) {
+) : AppExecutor {
     
     companion object {
         private const val GOOGLE_SEARCH_URL = "https://www.google.com/search?q="
+    }
+    
+    override val supportedIntentTypes: Set<KClass<out CommandIntent>> = setOf(
+        CommandIntent.Search::class
+    )
+    
+    override fun execute(intent: CommandIntent): ExecutionResult {
+        val searchIntent = intent as? CommandIntent.Search
+            ?: return ExecutionResult.Failure("Invalid intent type for GoogleSearchExecutor")
+        return executeSearch(searchIntent.query)
     }
     
     /**
@@ -33,7 +45,7 @@ class GoogleSearchExecutor @Inject constructor(
      * @param query The search query
      * @return ExecutionResult indicating success or failure
      */
-    fun execute(query: String): ExecutionResult {
+    private fun executeSearch(query: String): ExecutionResult {
         if (!capabilityResolver.isAppInstalled(SupportedApp.GOOGLE_SEARCH)) {
             return ExecutionResult.AppNotInstalled(SupportedApp.GOOGLE_SEARCH.displayName)
         }

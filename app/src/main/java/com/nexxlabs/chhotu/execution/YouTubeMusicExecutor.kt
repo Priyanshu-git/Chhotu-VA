@@ -5,10 +5,12 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import com.nexxlabs.chhotu.domain.engine.CapabilityResolver
+import com.nexxlabs.chhotu.domain.model.CommandIntent
 import com.nexxlabs.chhotu.domain.model.SupportedApp
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.reflect.KClass
 
 /**
  * Executor for YouTube Music commands.
@@ -19,10 +21,20 @@ import javax.inject.Singleton
 class YouTubeMusicExecutor @Inject constructor(
     @ApplicationContext private val context: Context,
     private val capabilityResolver: CapabilityResolver
-) {
+) : AppExecutor {
     
     companion object {
         private const val YOUTUBE_MUSIC_SEARCH_URL = "https://music.youtube.com/search?q="
+    }
+    
+    override val supportedIntentTypes: Set<KClass<out CommandIntent>> = setOf(
+        CommandIntent.PlayMusic::class
+    )
+    
+    override fun execute(intent: CommandIntent): ExecutionResult {
+        val musicIntent = intent as? CommandIntent.PlayMusic
+            ?: return ExecutionResult.Failure("Invalid intent type for YouTubeMusicExecutor")
+        return executePlayMusic(musicIntent.query)
     }
     
     /**
@@ -31,7 +43,7 @@ class YouTubeMusicExecutor @Inject constructor(
      * @param query The artist, song, or album to search for
      * @return ExecutionResult indicating success or failure
      */
-    fun execute(query: String): ExecutionResult {
+    private fun executePlayMusic(query: String): ExecutionResult {
 //        if (!capabilityResolver.isAppInstalled(SupportedApp.YOUTUBE_MUSIC)) {
 //            return ExecutionResult.AppNotInstalled(SupportedApp.YOUTUBE_MUSIC.displayName)
 //        }
