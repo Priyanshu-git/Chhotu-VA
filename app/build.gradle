@@ -8,9 +8,7 @@ plugins {
 
 android {
     namespace 'com.nexxlabs.chhotu'
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk 35
 
     defaultConfig {
         applicationId "com.nexxlabs.chhotu"
@@ -24,7 +22,7 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -59,6 +57,9 @@ dependencies {
     androidTestImplementation libs.androidx.compose.ui.test.junit4
     debugImplementation libs.androidx.compose.ui.tooling
     debugImplementation libs.androidx.compose.ui.test.manifest
+
+    // Extended Material Icons for Mic, etc.
+    implementation "androidx.compose.material:material-icons-extended"
 
     implementation libs.androidx.room.runtime
     implementation libs.androidx.room.ktx
