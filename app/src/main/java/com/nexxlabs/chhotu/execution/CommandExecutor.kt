@@ -1,33 +1,45 @@
 package com.nexxlabs.chhotu.execution
 
-import com.nexxlabs.chhotu.domain.model.CommandIntent
+import android.util.Log
+import com.nexxlabs.chhotu.domain.engine.CapabilityResolver
+import com.nexxlabs.chhotu.domain.engine.CommandNormalizer
+import com.nexxlabs.chhotu.domain.engine.ai.AIIntentEngine
+import com.nexxlabs.chhotu.domain.registry.model.ExecutionResult
+import com.nexxlabs.chhotu.util.Constants
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Central command executor that routes CommandIntent to appropriate executors.
- * Acts as a facade over the IntentExecutorResolver.
- * 
- * This class is now lightweight - all routing logic is delegated to the resolver,
- * and executors are managed by the registry via Hilt multibinding.
+ * Central command executor that orchestrates the command processing pipeline.
+ *
+ * Pipeline:
+ * 1. Normalize Input (CommandNormalizer)
+ * 2. Extract Intent (AIIntentEngine)
+ * 3. Resolve and Execute (CapabilityResolver)
  */
 @Singleton
 class CommandExecutor @Inject constructor(
-    private val resolver: IntentExecutorResolver
+    private val commandNormalizer: CommandNormalizer,
+    private val aiIntentEngine: AIIntentEngine,
+    private val capabilityResolver: CapabilityResolver
 ) {
     
     /**
-     * Execute a command intent using the appropriate executor.
+     * Execute a raw voice command.
      * 
-     * @param intent The command to execute
-     * @return ExecutionResult with feedback message
+     * @param rawCommand The raw text from speech recognition
+     * @return ExecutionResult
      */
-    fun execute(intent: CommandIntent): ExecutionResult {
-        // Handle Unknown intents directly - no executor needed
-        if (intent is CommandIntent.Unknown) {
-            return ExecutionResult.Failure(intent.feedbackMessage)
-        }
+    suspend fun execute(rawCommand: String): ExecutionResult {
+        // 1. Normalize
+        val normalizedText = commandNormalizer.normalize(rawCommand)
+        Log.d(Constants.LOG.DECISION, "Normalized: $normalizedText")
         
-        return resolver.executeIntent(intent)
+        // 2. AI Intent Extraction
+        val structuredIntent = aiIntentEngine.analyze(normalizedText)
+        Log.d(Constants.LOG.DECISION, "Intent: $structuredIntent")
+        
+        // 3. Resolve and Execute
+        return capabilityResolver.resolveAndExecute(structuredIntent)
     }
 }

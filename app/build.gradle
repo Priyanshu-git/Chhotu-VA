@@ -6,6 +6,16 @@ plugins {
     alias(libs.plugins.dagger)
 }
 
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file("local.properties")
+
+if (localPropertiesFile.exists()) {
+    localProperties.load(new FileInputStream(localPropertiesFile))
+}
+
+def myApiKey = localProperties.getProperty("OPEN_ROUTER_API_KEY", "")
+
+
 android {
     namespace 'com.nexxlabs.chhotu'
     compileSdk 35
@@ -16,6 +26,8 @@ android {
         targetSdk 36
         versionCode 1
         versionName "1.0"
+
+        buildConfigField "String", "OPEN_ROUTER_API_KEY", "\"${myApiKey}\""
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -35,6 +47,7 @@ android {
     }
     buildFeatures {
         compose true
+        buildConfig true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.4"

@@ -3,11 +3,8 @@ package com.nexxlabs.chhotu.ui
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.nexxlabs.chhotu.domain.engine.CommandNormalizer
-import com.nexxlabs.chhotu.domain.engine.RuleBasedDecisionEngine
-import com.nexxlabs.chhotu.domain.model.CommandIntent
+import com.nexxlabs.chhotu.domain.registry.model.ExecutionResult
 import com.nexxlabs.chhotu.execution.CommandExecutor
-import com.nexxlabs.chhotu.execution.ExecutionResult
 import com.nexxlabs.chhotu.speech.TTSFeedbackManager
 import com.nexxlabs.chhotu.util.Constants
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,13 +17,10 @@ import javax.inject.Inject
 
 /**
  * ViewModel for the assistant screen.
- * Orchestrates the command processing pipeline:
- * Speech Input → Normalize → Decide → Execute → Feedback
+ * Orchestrates the command processing pipeline via CommandExecutor.
  */
 @HiltViewModel
 class AssistantViewModel @Inject constructor(
-    private val commandNormalizer: CommandNormalizer,
-    private val decisionEngine: RuleBasedDecisionEngine,
     private val commandExecutor: CommandExecutor,
     private val ttsFeedbackManager: TTSFeedbackManager
 ) : ViewModel() {
@@ -54,105 +48,79 @@ class AssistantViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Called when entering listening state.
-     */
     fun onStartListening() {
         _state.value = AssistantState.Listening
     }
     
-    /**
-     * Called when speech recognition completes successfully.
-     * Processes the recognized text through the command pipeline.
-     */
     fun onSpeechRecognized(text: String) {
         viewModelScope.launch {
             processCommand(text)
         }
     }
     
-    /**
-     * Called when speech recognition fails or is cancelled.
-     */
     fun onSpeechError(errorMessage: String) {
         _state.value = AssistantState.Error(null, errorMessage)
         ttsFeedbackManager.speak(errorMessage)
         
-        // Return to idle after delay
         viewModelScope.launch {
             delay(3000)
             _state.value = AssistantState.Idle
         }
     }
     
-    /**
-     * Process a voice command through the full pipeline.
-     */
     private suspend fun processCommand(rawText: String) {
         Log.d(Constants.LOG.INPUT, "Input: $rawText")
-        // 1. Update state to processing
         _state.value = AssistantState.Processing(rawText)
         
-        // 2. Normalize the input
-        val normalizedText = commandNormalizer.normalize(rawText)
-        Log.d(Constants.LOG.INPUT, "Normalized: $normalizedText")
+        // Execute via CommandExecutor
+        val result = commandExecutor.execute(rawText)
         
-        // 3. Decide what action to take
-        val commandIntent = decisionEngine.decide(normalizedText)
-        
-        // 4. Execute the command
-        val result = commandExecutor.execute(commandIntent)
-        
-        // 5. Provide feedback and update state
-        val feedbackMessage = when (result) {
-            is ExecutionResult.Success -> result.feedbackMessage
-            is ExecutionResult.AppNotInstalled -> result.feedbackMessage
-            is ExecutionResult.Failure -> result.feedbackMessage
-        }
-        
+        // Provide feedback
+        val feedbackMessage = getFeedbackMessage(result)
         ttsFeedbackManager.speak(feedbackMessage)
         
-        // 6. Update history
-        addToHistory(rawText, commandIntent, result)
+        // Update history
+        addToHistory(rawText, result, feedbackMessage)
         
-        // 7. Update final state
-        when (result) {
-            is ExecutionResult.Success -> {
-                _state.value = AssistantState.Success(rawText, feedbackMessage)
-            }
-            is ExecutionResult.AppNotInstalled,
-            is ExecutionResult.Failure -> {
-                _state.value = AssistantState.Error(rawText, feedbackMessage)
-            }
+        // Update state
+        if (result is ExecutionResult.Success) {
+            _state.value = AssistantState.Success(rawText, feedbackMessage)
+        } else {
+             _state.value = AssistantState.Error(rawText, feedbackMessage)
         }
         
-        // 8. Return to idle after delay
+        // Return to idle
         delay(4000)
         _state.value = AssistantState.Idle
     }
     
+    private fun getFeedbackMessage(result: ExecutionResult): String {
+        return when (result) {
+            is ExecutionResult.Success -> "Task completed." // Generic success
+            is ExecutionResult.Failure.AppNotInstalled -> "That app is not installed."
+            is ExecutionResult.Failure.ActionNotSupported -> "I can't do that yet."
+            is ExecutionResult.Failure.MissingRequiredEntities -> "I need more information to do that."
+            is ExecutionResult.Failure.ExecutionException -> "Something went wrong: ${result.throwable.localizedMessage}"
+            // Fallback for any other failure
+            else -> "I couldn't understand or execute that."
+        }
+    }
+    
     private fun addToHistory(
         originalText: String,
-        intent: CommandIntent,
-        result: ExecutionResult
+        result: ExecutionResult,
+        feedback: String
     ) {
         val historyItem = CommandHistoryItem(
             originalText = originalText,
-            intentType = intent::class.simpleName ?: "Unknown",
+            intentType = "AI Command", // Simplified
             wasSuccessful = result is ExecutionResult.Success,
-            feedbackMessage = when (result) {
-                is ExecutionResult.Success -> result.feedbackMessage
-                is ExecutionResult.AppNotInstalled -> result.feedbackMessage
-                is ExecutionResult.Failure -> result.feedbackMessage
-            }
+            feedbackMessage = feedback
         )
         
         _commandHistory.value = listOf(historyItem) + _commandHistory.value.take(9)
     }
     
-    /**
-     * Reset to idle state manually.
-     */
     fun resetToIdle() {
         _state.value = AssistantState.Idle
     }

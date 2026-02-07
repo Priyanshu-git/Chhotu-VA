@@ -1,10 +1,7 @@
 package com.nexxlabs.chhotu.di
 
 import android.content.Context
-import com.nexxlabs.chhotu.domain.engine.CapabilityResolver
 import com.nexxlabs.chhotu.domain.engine.CommandNormalizer
-import com.nexxlabs.chhotu.domain.engine.ContactManager
-import com.nexxlabs.chhotu.domain.engine.RuleBasedDecisionEngine
 import com.nexxlabs.chhotu.speech.SpeechInputManager
 import com.nexxlabs.chhotu.speech.TTSFeedbackManager
 import dagger.Module
@@ -32,20 +29,6 @@ object AppModule {
     
     @Provides
     @Singleton
-    fun provideRuleBasedDecisionEngine(contactManager: ContactManager): RuleBasedDecisionEngine {
-        return RuleBasedDecisionEngine(contactManager)
-    }
-    
-    @Provides
-    @Singleton
-    fun provideCapabilityResolver(
-        @ApplicationContext context: Context
-    ): CapabilityResolver {
-        return CapabilityResolver(context)
-    }
-    
-    @Provides
-    @Singleton
     fun provideSpeechInputManager(
         @ApplicationContext context: Context
     ): SpeechInputManager {
@@ -58,6 +41,23 @@ object AppModule {
         @ApplicationContext context: Context
     ): TTSFeedbackManager {
         return TTSFeedbackManager(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideGson(): com.google.gson.Gson {
+        return com.google.gson.Gson()
+    }
+
+    @Provides
+    @Singleton
+    fun provideOkHttpClient(): okhttp3.OkHttpClient {
+        val logging = okhttp3.logging.HttpLoggingInterceptor().apply {
+            level = okhttp3.logging.HttpLoggingInterceptor.Level.BODY
+        }
+        return okhttp3.OkHttpClient.Builder()
+            .addInterceptor(logging)
+            .build()
     }
 }
 
