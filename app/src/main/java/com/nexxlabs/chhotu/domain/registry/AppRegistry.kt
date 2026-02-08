@@ -4,4 +4,5 @@ import com.nexxlabs.chhotu.domain.registry.model.RegistryEntry
 
 interface AppRegistry {
     fun findByAlias(alias: String): RegistryEntry?
+    fun getAllEntries(): List<RegistryEntry>
 }
