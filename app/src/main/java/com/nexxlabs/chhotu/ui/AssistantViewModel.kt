@@ -90,8 +90,7 @@ class AssistantViewModel @Inject constructor(
         }
         
         // Return to idle
-        delay(4000)
-        _state.value = AssistantState.Idle
+        resetToIdle()
     }
     
     private fun getFeedbackMessage(result: ExecutionResult): String {
