@@ -2,6 +2,7 @@ package com.nexxlabs.chhotu.di
 
 import android.content.Context
 import com.nexxlabs.chhotu.domain.engine.CommandNormalizer
+import com.nexxlabs.chhotu.domain.engine.rule.BasicEngine
 import com.nexxlabs.chhotu.speech.SpeechInputManager
 import com.nexxlabs.chhotu.speech.TTSFeedbackManager
 import dagger.Module
@@ -58,6 +59,12 @@ object AppModule {
         return okhttp3.OkHttpClient.Builder()
             .addInterceptor(logging)
             .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideBasicEngine(): BasicEngine{
+        return BasicEngine()
     }
 }
 

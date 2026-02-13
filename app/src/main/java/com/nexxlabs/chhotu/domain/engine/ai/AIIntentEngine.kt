@@ -3,7 +3,8 @@ package com.nexxlabs.chhotu.domain.engine.ai
 import android.util.Log
 import com.google.gson.Gson
 import com.nexxlabs.chhotu.BuildConfig
-import com.nexxlabs.chhotu.domain.engine.ai.model.IntentType
+import com.nexxlabs.chhotu.domain.engine.EngineInterface
+import com.nexxlabs.chhotu.domain.engine.EngineUtil.fallbackIntent
 import com.nexxlabs.chhotu.domain.engine.ai.model.StructuredIntent
 import com.nexxlabs.chhotu.domain.registry.AppRegistry
 import com.nexxlabs.chhotu.util.Constants
@@ -24,7 +25,7 @@ constructor(
         private val client: OkHttpClient,
         private val gson: Gson,
         private val appRegistry: AppRegistry
-) {
+): EngineInterface {
 
     companion object {
         private const val OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
@@ -69,7 +70,7 @@ constructor(
         """.trimIndent()
     }
 
-    suspend fun analyze(command: String): StructuredIntent = withContext(Dispatchers.IO) {
+    override suspend fun analyze(command: String): StructuredIntent = withContext(Dispatchers.IO) {
         try {
             val jsonBody = JSONObject().apply {
                 put("model", MODEL)
@@ -137,15 +138,5 @@ constructor(
             Log.e(Constants.LOG.AI_ENGINE, "JSON Parsing error", e)
             fallbackIntent()
         }
-    }
-
-    private fun fallbackIntent(): StructuredIntent {
-        return StructuredIntent(
-            intentType = IntentType.UNKNOWN,
-            targetApp = null,
-            action = null,
-            entities = emptyMap(),
-            confidence = 0.0
-        )
     }
 }

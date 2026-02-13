@@ -11,14 +11,74 @@
 
     <!-- Package visibility for target apps (Android 11+) -->
     <queries>
-        <!-- Google Search -->
-        <package android:name="com.google.android.googlequicksearchbox" />
-        <!-- YouTube Music -->
-        <package android:name="com.google.android.apps.youtube.music" />
-        <!-- YouTube -->
-        <package android:name="com.google.android.youtube" />
-        <!-- WhatsApp -->
-        <package android:name="com.whatsapp" />
+
+        <!-- Social / Messaging -->
+        <package android:name="com.instagram.android" />
+        <package android:name="com.facebook.katana" />
+        <package android:name="com.twitter.android" />
+        <package android:name="org.telegram.messenger" />
+        <package android:name="com.snapchat.android" />
+        <package android:name="com.instagram.barcelona" /> <!-- Threads -->
+
+        <!-- Browsers / Email -->
+        <package android:name="com.android.chrome" />
+        <package android:name="com.google.android.gm" />
+
+        <!-- Google Apps -->
+        <package android:name="com.google.android.apps.maps" />
+        <package android:name="com.google.android.apps.photos" />
+        <package android:name="com.google.android.apps.docs" /> <!-- Drive -->
+        <package android:name="com.google.android.apps.translate" />
+
+        <!-- Music / Video -->
+        <package android:name="com.spotify.music" />
+        <package android:name="com.netflix.mediaclient" />
+        <package android:name="com.amazon.avod.thirdpartyclient" /> <!-- Prime Video -->
+        <package android:name="in.startv.hotstar" />
+        <package android:name="com.jio.media.ondemand" /> <!-- JioCinema -->
+        <package android:name="com.mxtech.videoplayer.ad" />
+
+        <!-- Shopping -->
+        <package android:name="in.amazon.mShop.android.shopping" />
+        <package android:name="com.flipkart.android" />
+        <package android:name="com.meesho.supply" />
+        <package android:name="com.myntra.android" />
+        <package android:name="com.ril.ajio" />
+
+        <!-- Food / Grocery -->
+        <package android:name="com.application.zomato" />
+        <package android:name="in.swiggy.android" />
+        <package android:name="com.grofers.customerapp" /> <!-- Blinkit -->
+        <package android:name="com.zeptoconsumerapp" />
+        <package android:name="com.bigbasket.mobileapp" />
+
+        <!-- Payments (UPI) -->
+        <package android:name="com.phonepe.app" />
+        <package android:name="com.google.android.apps.nbu.paisa.user" /> <!-- GPay -->
+        <package android:name="net.one97.paytm" />
+        <package android:name="in.org.npci.upiapp" /> <!-- BHIM -->
+
+        <!-- Travel / Transport -->
+        <package android:name="com.olacabs.customer" />
+        <package android:name="com.ubercab" />
+        <package android:name="com.rapido.passenger" />
+        <package android:name="cris.org.in.prs.ima" /> <!-- IRCTC -->
+        <package android:name="com.makemytrip" />
+
+        <!-- Utilities / Media -->
+        <package android:name="com.truecaller" />
+        <package android:name="in.mohalla.sharechat" />
+        <package android:name="com.eterno.shortvideos" /> <!-- Josh -->
+        <package android:name="com.eterno" /> <!-- Dailyhunt -->
+        <package android:name="com.nis.app" /> <!-- Inshorts -->
+
+        <!-- Work / Productivity -->
+        <package android:name="com.openai.chatgpt" />
+        <package android:name="com.microsoft.teams" />
+        <package android:name="us.zoom.videomeetings" />
+        <package android:name="com.lemon.lvoverseas" /> <!-- CapCut -->
+        <package android:name="com.canva.editor" />
+
     </queries>
 
     <application

@@ -4,6 +4,8 @@ import android.util.Log
 import com.nexxlabs.chhotu.domain.engine.CapabilityResolver
 import com.nexxlabs.chhotu.domain.engine.CommandNormalizer
 import com.nexxlabs.chhotu.domain.engine.ai.AIIntentEngine
+import com.nexxlabs.chhotu.domain.engine.ai.model.IntentType
+import com.nexxlabs.chhotu.domain.engine.rule.BasicEngine
 import com.nexxlabs.chhotu.domain.registry.model.ExecutionResult
 import com.nexxlabs.chhotu.util.Constants
 import javax.inject.Inject
@@ -21,6 +23,7 @@ import javax.inject.Singleton
 class CommandExecutor @Inject constructor(
     private val commandNormalizer: CommandNormalizer,
     private val aiIntentEngine: AIIntentEngine,
+    private val basicEngine: BasicEngine,
     private val capabilityResolver: CapabilityResolver
 ) {
     
@@ -36,7 +39,9 @@ class CommandExecutor @Inject constructor(
         Log.d(Constants.LOG.DECISION, "Normalized: $normalizedText")
         
         // 2. AI Intent Extraction
-        val structuredIntent = aiIntentEngine.analyze(normalizedText)
+        var structuredIntent = basicEngine.analyze(normalizedText)
+        if (structuredIntent.intentType == IntentType.UNKNOWN)
+            structuredIntent = aiIntentEngine.analyze(normalizedText)
         Log.d(Constants.LOG.DECISION, "Intent: $structuredIntent")
         
         // 3. Resolve and Execute
