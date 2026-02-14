@@ -10,6 +10,7 @@ import com.nexxlabs.chhotu.domain.registry.AppRegistry
 import com.nexxlabs.chhotu.domain.registry.Executable
 import com.nexxlabs.chhotu.domain.registry.model.Action
 import com.nexxlabs.chhotu.domain.registry.model.ActionContract
+import com.nexxlabs.chhotu.domain.registry.model.CommandResult
 import com.nexxlabs.chhotu.domain.registry.model.ExecutionResult
 import com.nexxlabs.chhotu.domain.registry.model.RegistryEntry
 import io.mockk.every
@@ -17,7 +18,6 @@ import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.verify
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -57,7 +57,7 @@ class CapabilityResolverTest {
 
                 val result = capabilityResolver.resolveAndExecute(intent)
 
-                assertEquals(ExecutionResult.Failure.ActionNotSupported, result)
+                assertEquals(CommandResult(ExecutionResult.Failure.ActionNotSupported), result)
         }
 
         @Test
@@ -73,7 +73,7 @@ class CapabilityResolverTest {
 
                 val result = capabilityResolver.resolveAndExecute(intent)
 
-                assertEquals(ExecutionResult.Failure.MissingRequiredEntities, result)
+                assertEquals(CommandResult(ExecutionResult.Failure.MissingRequiredEntities), result)
         }
 
         @Test
@@ -91,7 +91,7 @@ class CapabilityResolverTest {
 
                 val result = capabilityResolver.resolveAndExecute(intent)
 
-                assertEquals(ExecutionResult.Failure.ActionNotSupported, result)
+                assertEquals(CommandResult(ExecutionResult.Failure.ActionNotSupported), result)
         }
 
         @Test
@@ -120,7 +120,13 @@ class CapabilityResolverTest {
 
                 val result = capabilityResolver.resolveAndExecute(intent)
 
-                assertEquals(ExecutionResult.Failure.AppNotInstalled, result)
+                assertEquals(
+                        CommandResult(
+                                ExecutionResult.Failure.AppNotInstalled,
+                                displayName = "MyApp"
+                        ),
+                        result
+                )
         }
 
         @Test
@@ -158,7 +164,14 @@ class CapabilityResolverTest {
 
                 val result = capabilityResolver.resolveAndExecute(intent)
 
-                assertTrue(result is ExecutionResult.Success)
+                assertEquals(
+                        CommandResult(
+                                ExecutionResult.Success,
+                                displayName = "Music App",
+                                actionId = "PLAY"
+                        ),
+                        result
+                )
                 verify { executable.execute(context, mapOf("song" to "test song")) }
         }
 
@@ -197,8 +210,49 @@ class CapabilityResolverTest {
 
                 val result = capabilityResolver.resolveAndExecute(intent)
 
-                assertTrue(result is ExecutionResult.Success)
+                assertEquals(
+                        CommandResult(
+                                ExecutionResult.Success,
+                                displayName = "Music App",
+                                actionId = "OPEN"
+                        ),
+                        result
+                )
                 verify { openExecutable.execute(context, emptyMap()) }
+        }
+
+        @Test
+        fun `resolveAndExecute returns ActionNotSupported when even OPEN not found`() {
+                val intent =
+                        StructuredIntent(
+                                intentType = IntentType.APP_ACTION,
+                                targetApp = "musicapp",
+                                action = "DANCE",
+                                entities = emptyMap(),
+                                confidence = 1.0
+                        )
+
+                val registryEntry =
+                        RegistryEntry(
+                                appId = "musicapp",
+                                displayName = "Music App",
+                                packageName = "com.musicapp",
+                                aliases = setOf("musicapp"),
+                                actions = emptySet() // No actions
+                        )
+
+                every { appRegistry.findByAlias("musicapp") } returns registryEntry
+                every { packageManager.getPackageInfo("com.musicapp", 0) } returns PackageInfo()
+
+                val result = capabilityResolver.resolveAndExecute(intent)
+
+                assertEquals(
+                        CommandResult(
+                                ExecutionResult.Failure.ActionNotSupported,
+                                displayName = "Music App"
+                        ),
+                        result
+                )
         }
 
         @Test
@@ -246,7 +300,14 @@ class CapabilityResolverTest {
 
                 val result = capabilityResolver.resolveAndExecute(intent)
 
-                assertTrue(result is ExecutionResult.Success)
+                assertEquals(
+                        CommandResult(
+                                ExecutionResult.Success,
+                                displayName = "Music App",
+                                actionId = "OPEN"
+                        ),
+                        result
+                )
                 verify { openExecutable.execute(context, emptyMap()) }
         }
 }

@@ -7,6 +7,7 @@ import com.nexxlabs.chhotu.domain.engine.ai.model.IntentType
 import com.nexxlabs.chhotu.domain.engine.ai.model.StructuredIntent
 import com.nexxlabs.chhotu.domain.registry.AppRegistry
 import com.nexxlabs.chhotu.domain.registry.model.Action
+import com.nexxlabs.chhotu.domain.registry.model.CommandResult
 import com.nexxlabs.chhotu.domain.registry.model.ExecutionResult
 import com.nexxlabs.chhotu.util.Constants
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -28,20 +29,27 @@ class CapabilityResolver @Inject constructor(
     /**
      * Resolve and execute the intent.
      */
-    fun resolveAndExecute(intent: StructuredIntent): ExecutionResult {
+    fun resolveAndExecute(intent: StructuredIntent): CommandResult {
         if (intent.intentType == IntentType.UNKNOWN) {
-            return ExecutionResult.Failure.ActionNotSupported // Or unknown
+            return CommandResult(ExecutionResult.Failure.ActionNotSupported)
         }
 
-        val targetAppAlias = intent.targetApp ?: return ExecutionResult.Failure.MissingRequiredEntities
-        
+        val targetAppAlias = intent.targetApp
+                        ?: return CommandResult(ExecutionResult.Failure.MissingRequiredEntities)
+
         // 1. Resolve registry entry by alias
-        val entry = appRegistry.findByAlias(targetAppAlias) 
-            ?: return ExecutionResult.Failure.ActionNotSupported // App not found in registry
+        val entry =
+                appRegistry.findByAlias(targetAppAlias)
+                        ?: return CommandResult(
+                                ExecutionResult.Failure.ActionNotSupported
+                        ) // App not found in registry
 
         // 2. Check app installation (if packageName is present)
         if (entry.packageName != null && !isPackageInstalled(entry.packageName)) {
-            return ExecutionResult.Failure.AppNotInstalled
+            return CommandResult(
+                    ExecutionResult.Failure.AppNotInstalled,
+                    displayName = entry.displayName
+            )
         }
 
         // 3. Resolve action
@@ -60,31 +68,41 @@ class CapabilityResolver @Inject constructor(
         }
         
         if (action == null) {
-             return ExecutionResult.Failure.ActionNotSupported // Even OPEN action not found
+            return CommandResult(
+                    ExecutionResult.Failure.ActionNotSupported, // Even OPEN action not found
+                    displayName = entry.displayName
+            )
         }
 
         // 4. Validate ActionContract
         if (!validateContract(action, intent.entities)) {
-            // specific to user request: "if we are able to find the app, but action is not supported (or contract fails), we should open the app"
-             Log.w(Constants.LOG.EXECUTOR, "Contract validation failed for ${entry.displayName} : ${action.id}. Falling back to OPEN.")
-             val openAction = entry.actions.find { it.id.equals("OPEN", ignoreCase = true) }
-             if (openAction != null && openAction != action) {
-                 return openAction.primaryExecutable.execute(context, emptyMap())
-             }
-             return ExecutionResult.Failure.MissingRequiredEntities
+            // specific to user request: "if we are able to find the app, but action is not
+            // supported (or contract fails), we should open the app"
+            Log.w(Constants.LOG.EXECUTOR, "Contract validation failed for ${entry.displayName} : ${action.id}. Falling back to OPEN.")
+
+            val openAction = entry.actions.find { it.id.equals("OPEN", ignoreCase = true) }
+            if (openAction != null && openAction != action) {
+                val result = openAction.primaryExecutable.execute(context, emptyMap())
+                return CommandResult(result, displayName = entry.displayName, actionId = "OPEN")
+            }
+            return CommandResult(
+                    ExecutionResult.Failure.MissingRequiredEntities,
+                    displayName = entry.displayName,
+                    actionId = action.id
+            )
         }
 
         // 5. Execute primary executable
         Log.d(Constants.LOG.EXECUTOR, "Executing primary for ${entry.displayName} : ${action.id}")
-        val result = action.primaryExecutable.execute(context, intent.entities)
+        var result = action.primaryExecutable.execute(context, intent.entities)
 
         // 6. On runtime failure -> execute fallback
         if (result is ExecutionResult.Failure && action.fallbackExecutable != null) {
             Log.w(Constants.LOG.EXECUTOR, "Primary failed, executing fallback for ${entry.displayName} : ${action.id}")
-            return action.fallbackExecutable.execute(context, intent.entities)
+            result = action.fallbackExecutable.execute(context, intent.entities)
         }
 
-        return result
+        return CommandResult(result, displayName = entry.displayName, actionId = action.id)
     }
 
     private fun isPackageInstalled(packageName: String): Boolean {

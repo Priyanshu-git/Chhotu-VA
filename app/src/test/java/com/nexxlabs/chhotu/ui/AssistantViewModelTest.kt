@@ -2,6 +2,7 @@ package com.nexxlabs.chhotu.ui
 
 import android.util.Log
 import app.cash.turbine.test
+import com.nexxlabs.chhotu.domain.registry.model.CommandResult
 import com.nexxlabs.chhotu.domain.registry.model.ExecutionResult
 import com.nexxlabs.chhotu.execution.CommandExecutor
 import com.nexxlabs.chhotu.speech.TTSFeedbackManager
@@ -54,9 +55,10 @@ class AssistantViewModelTest {
     fun `processCommand updates state to Success on successful execution`() =
             runTest(testDispatcher) {
                 val command = "open settings"
-                val feedback = "Task completed."
+                val feedback = "Opening Settings."
 
-                coEvery { commandExecutor.execute(command) } returns ExecutionResult.Success
+                coEvery { commandExecutor.execute(command) } returns
+                        CommandResult(executionResult = ExecutionResult.Success, displayName = "Settings", actionId = "OPEN")
 
                 viewModel.state.test {
                     // Initial state
@@ -93,8 +95,8 @@ class AssistantViewModelTest {
                 val command = "unknown command"
                 val feedback = "Something went wrong: Unknown"
 
-                coEvery { commandExecutor.execute(command) } returns
-                        ExecutionResult.Failure.ExecutionException(RuntimeException("Unknown"))
+                coEvery { commandExecutor.execute(command) } returns CommandResult(
+                        ExecutionResult.Failure.ExecutionException(RuntimeException("Unknown")))
 
                 viewModel.state.test {
                     assertEquals(AssistantState.Idle, awaitItem())

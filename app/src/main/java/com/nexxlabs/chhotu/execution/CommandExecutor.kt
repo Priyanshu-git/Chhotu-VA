@@ -6,7 +6,7 @@ import com.nexxlabs.chhotu.domain.engine.CommandNormalizer
 import com.nexxlabs.chhotu.domain.engine.ai.AIIntentEngine
 import com.nexxlabs.chhotu.domain.engine.ai.model.IntentType
 import com.nexxlabs.chhotu.domain.engine.rule.BasicEngine
-import com.nexxlabs.chhotu.domain.registry.model.ExecutionResult
+import com.nexxlabs.chhotu.domain.registry.model.CommandResult
 import com.nexxlabs.chhotu.util.Constants
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -31,9 +31,9 @@ class CommandExecutor @Inject constructor(
      * Execute a raw voice command.
      * 
      * @param rawCommand The raw text from speech recognition
-     * @return ExecutionResult
+     * @return CommandResult
      */
-    suspend fun execute(rawCommand: String): ExecutionResult {
+    suspend fun execute(rawCommand: String): CommandResult {
         // 1. Normalize
         val normalizedText = commandNormalizer.normalize(rawCommand)
         Log.d(Constants.LOG.DECISION, "Normalized: $normalizedText")

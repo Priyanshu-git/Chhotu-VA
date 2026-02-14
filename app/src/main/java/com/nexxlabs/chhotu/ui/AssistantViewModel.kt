@@ -3,6 +3,7 @@ package com.nexxlabs.chhotu.ui
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.nexxlabs.chhotu.domain.registry.model.CommandResult
 import com.nexxlabs.chhotu.domain.registry.model.ExecutionResult
 import com.nexxlabs.chhotu.execution.CommandExecutor
 import com.nexxlabs.chhotu.speech.TTSFeedbackManager
@@ -80,10 +81,10 @@ class AssistantViewModel @Inject constructor(
         ttsFeedbackManager.speak(feedbackMessage)
         
         // Update history
-        addToHistory(rawText, result, feedbackMessage)
-        
+        addToHistory(rawText, result.executionResult, feedbackMessage)
+
         // Update state
-        if (result is ExecutionResult.Success) {
+        if (result.executionResult is ExecutionResult.Success) {
             _state.value = AssistantState.Success(rawText, feedbackMessage)
         } else {
              _state.value = AssistantState.Error(rawText, feedbackMessage)
@@ -92,16 +93,31 @@ class AssistantViewModel @Inject constructor(
         // Return to idle
         resetToIdle()
     }
-    
-    private fun getFeedbackMessage(result: ExecutionResult): String {
-        return when (result) {
-            is ExecutionResult.Success -> "Task completed." // Generic success
-            is ExecutionResult.Failure.AppNotInstalled -> "That app is not installed."
-            is ExecutionResult.Failure.ActionNotSupported -> "I can't do that yet."
-            is ExecutionResult.Failure.MissingRequiredEntities -> "I need more information to do that."
-            is ExecutionResult.Failure.ExecutionException -> "Something went wrong: ${result.throwable.localizedMessage}"
-            // Fallback for any other failure
-            else -> "I couldn't understand or execute that."
+
+    private fun getFeedbackMessage(result: CommandResult): String {
+        val name = result.displayName
+        return when (result.executionResult) {
+            is ExecutionResult.Success ->
+                    when (result.actionId) {
+                        "OPEN" -> "Opening ${name ?: "app"}."
+                        "SEARCH" -> "Searching on ${name ?: "the web"}."
+                        "SEND_MESSAGE" -> "Sending message on ${name ?: "app"}."
+                        "CALL" -> "Calling via ${name ?: "phone"}."
+                        "INCREASE" -> "Volume increased."
+                        "DECREASE" -> "Volume decreased."
+                        "MUTE" -> "Volume muted."
+                        "TURN_ON" -> "${name ?: "Feature"} turned on."
+                        "TURN_OFF" -> "${name ?: "Feature"} turned off."
+                        else -> "Done."
+                    }
+            is ExecutionResult.Failure.AppNotInstalled ->
+                    "${name ?: "The app"} is not installed on your device."
+            is ExecutionResult.Failure.ActionNotSupported ->
+                    if (name != null) "I can't do that with $name." else "I can't do that yet."
+            is ExecutionResult.Failure.MissingRequiredEntities ->
+                    "I need more information to do that."
+            is ExecutionResult.Failure.ExecutionException ->
+                    "Something went wrong: ${result.executionResult.throwable.localizedMessage}"
         }
     }
     

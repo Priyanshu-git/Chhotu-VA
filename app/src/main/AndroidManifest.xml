@@ -12,6 +12,15 @@
     <!-- Package visibility for target apps (Android 11+) -->
     <queries>
 
+        <!-- Google Search -->
+        <package android:name="com.google.android.googlequicksearchbox" />
+        <!-- YouTube Music -->
+        <package android:name="com.google.android.apps.youtube.music" />
+        <!-- YouTube -->
+        <package android:name="com.google.android.youtube" />
+        <!-- WhatsApp -->
+        <package android:name="com.whatsapp" />
+
         <!-- Social / Messaging -->
         <package android:name="com.instagram.android" />
         <package android:name="com.facebook.katana" />
