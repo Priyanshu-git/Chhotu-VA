@@ -53,14 +53,17 @@ constructor(
             $appList
             
             Examples:
-            1. "Open WhatsApp" -> { "intent_type": "OPEN_APP", "target_app": "WhatsApp", ... }
-            2. "Increase volume" -> { "intent_type": "APP_ACTION", "target_app": "Volume", "action": "increase", ... }
-            3. "Turn on flashlight" -> { "intent_type": "APP_ACTION", "target_app": "Flashlight", "action": "turn on", ... }
-            4. "Mute" -> { "intent_type": "APP_ACTION", "target_app": "Volume", "action": "mute", ... }
-            
+            - "Open WhatsApp" -> { "intent_type": "OPEN_APP", "target_app": "WhatsApp", ... }
+            - "Increase volume" -> { "intent_type": "APP_ACTION", "target_app": "Volume", "action": "increase", ... }
+            - "Turn on flashlight" -> { "intent_type": "APP_ACTION", "target_app": "Flashlight", "action": "turn on", ... }
+            - "Mute" -> { "intent_type": "APP_ACTION", "target_app": "Volume", "action": "mute", ... }
+            - "Play Bakhuda on Spotify" -> { "intent_type": "APP_ACTION", "target_app": "Spotify", "action": "search", "entities": { "query": "Bakhuda" } }
+            - "Search trends on Youtube" -> { "intent_type": "APP_ACTION", "target_app": "YouTube", "action": "search", "entities": { "query": "trends" } }
+
             Rules:
             - Map commands like "mute", "volume up" explicitly to "Volume" app.
             - Map commands like "torch", "light" explicitly to "Flashlight" app.
+            - For "play" or "search" commands with specific content (song, video, artist), use action="search" and map the content to "query" entity.
             - confidence must be between 0.0 and 1.0
             - if intent is unclear or not supported, set intent_type to UNKNOWN
             - STRICT JSON OUTPUT ONLY. NO MARKDOWN. NO EXPLANATION.

@@ -186,13 +186,13 @@ class StaticAppRegistry @Inject constructor(
             actions = setOf(
                 Action(
                     id = "TURN_ON",
-                    aliases = setOf("on", "enable", "start", "open"),
+                    aliases = setOf("on", "enable", "start", "open", "turn on"),
                     contract = ActionContract(emptySet()),
                     primaryExecutable = FlashlightExecutable(FlashlightExecutable.FlashlightAction.ON)
                 ),
                 Action(
                     id = "TURN_OFF",
-                    aliases = setOf("off", "disable", "stop", "close"),
+                    aliases = setOf("off", "disable", "stop", "close", "turn off"),
                     contract = ActionContract(emptySet()),
                     primaryExecutable = FlashlightExecutable(FlashlightExecutable.FlashlightAction.OFF)
                 )
@@ -228,7 +228,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "launch", "take photo"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA, "com.google.android.GoogleCamera"), // Pixel
+                    primaryExecutable = IntentExecutable(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA, null),
                     fallbackExecutable = SystemExecutable(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA) // Generic Intent
                 )
             )

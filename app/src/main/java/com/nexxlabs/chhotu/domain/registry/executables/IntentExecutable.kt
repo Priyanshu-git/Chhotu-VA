@@ -8,16 +8,21 @@ import com.nexxlabs.chhotu.domain.registry.model.ExecutionResult
 
 class IntentExecutable(
     private val action: String,
-    private val packageName: String
+    private val packageName: String?
 ) : Executable {
 
     override fun execute(context: Context, entities: Map<String, String>): ExecutionResult {
         return try {
-            val intent = if (action == Intent.ACTION_MAIN) {
-                context.packageManager.getLaunchIntentForPackage(packageName)
-                    ?: throw ActivityNotFoundException("No launch intent for $packageName")
-            } else {
-                Intent(action).apply { setPackage(packageName) }
+            val intent = when {
+                action == Intent.ACTION_MAIN && packageName != null -> {
+                    context.packageManager.getLaunchIntentForPackage(packageName)
+                        ?: throw ActivityNotFoundException("No launch intent for $packageName")
+                }
+                else -> {
+                    Intent(action).apply {
+                        packageName?.let { setPackage(it) }
+                    }
+                }
             }
 
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
