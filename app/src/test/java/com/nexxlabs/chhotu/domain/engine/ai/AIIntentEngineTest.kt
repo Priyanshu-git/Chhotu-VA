@@ -2,26 +2,24 @@ package com.nexxlabs.chhotu.domain.engine.ai
 
 import android.util.Log
 import com.google.gson.Gson
+import com.nexxlabs.chhotu.data.remote.OpenRouterService
 import com.nexxlabs.chhotu.domain.engine.ai.model.IntentType
 import com.nexxlabs.chhotu.domain.registry.AppRegistry
 import com.nexxlabs.chhotu.domain.registry.model.RegistryEntry
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import kotlinx.coroutines.runBlocking
-import okhttp3.Call
-import okhttp3.OkHttpClient
-import okhttp3.Protocol
-import okhttp3.Request
-import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
+import retrofit2.Response
 
 class AIIntentEngineTest {
 
-    private lateinit var client: OkHttpClient
+    private lateinit var client: OpenRouterService
     private lateinit var gson: Gson
     private lateinit var appRegistry: AppRegistry
     private lateinit var aiIntentEngine: AIIntentEngine
@@ -41,14 +39,14 @@ class AIIntentEngineTest {
         // Mock app registry for prompt generation
         every { appRegistry.getAllEntries() } returns
                 listOf(
-                        RegistryEntry(
-                                "whatsapp",
-                                "WhatsApp",
-                                "com.whatsapp",
-                                setOf("whatsapp"),
-                                emptySet()
-                        ),
-                        RegistryEntry("volume", "Volume", null, setOf("volume"), emptySet())
+                    RegistryEntry(
+                        "whatsapp",
+                        "WhatsApp",
+                        "com.whatsapp",
+                        setOf("whatsapp"),
+                        emptySet()
+                    ),
+                    RegistryEntry("volume", "Volume", null, setOf("volume"), emptySet())
                 )
 
         aiIntentEngine = AIIntentEngine(client, gson, appRegistry)
@@ -58,8 +56,9 @@ class AIIntentEngineTest {
     fun `analyze returns correct intent on successful API call`() = runBlocking {
         val command = "mute"
         val mockJsonResponse =
-                """
+            """
             {
+              "id": "123",
               "choices": [
                 {
                   "message": {
@@ -71,18 +70,13 @@ class AIIntentEngineTest {
             }
         """.trimIndent()
 
-        val mockCall = mockk<Call>()
-        val mockResponse =
-                Response.Builder()
-                        .request(Request.Builder().url("https://example.com").build())
-                        .protocol(Protocol.HTTP_1_1)
-                        .code(200)
-                        .message("OK")
-                        .body(mockJsonResponse.toResponseBody())
-                        .build()
+        val responseObj =
+            gson.fromJson(
+                mockJsonResponse,
+                com.nexxlabs.chhotu.data.remote.model.ChatCompletionResponse::class.java
+            )
 
-        every { client.newCall(any()) } returns mockCall
-        every { mockCall.execute() } returns mockResponse
+        coEvery { client.getCompletions(any(), any()) } returns Response.success(responseObj)
 
         val result = aiIntentEngine.analyze(command)
 
@@ -96,17 +90,8 @@ class AIIntentEngineTest {
     fun `analyze returns fallback intent on API failure`() = runBlocking {
         val command = "test"
 
-        val mockCall = mockk<Call>()
-        val mockResponse =
-                Response.Builder()
-                        .request(Request.Builder().url("https://example.com").build())
-                        .protocol(Protocol.HTTP_1_1)
-                        .code(500)
-                        .message("Error")
-                        .build()
-
-        every { client.newCall(any()) } returns mockCall
-        every { mockCall.execute() } returns mockResponse
+        coEvery { client.getCompletions(any(), any()) } returns
+                Response.error(500, "Error".toResponseBody())
 
         val result = aiIntentEngine.analyze(command)
 
@@ -117,8 +102,9 @@ class AIIntentEngineTest {
     fun `analyze handles markdown code blocks in response`() = runBlocking {
         val command = "open whatsapp"
         val mockJsonResponse =
-                """
+            """
             {
+              "id": "124",
               "choices": [
                 {
                   "message": {
@@ -130,18 +116,13 @@ class AIIntentEngineTest {
             }
         """.trimIndent()
 
-        val mockCall = mockk<Call>()
-        val mockResponse =
-                Response.Builder()
-                        .request(Request.Builder().url("https://example.com").build())
-                        .protocol(Protocol.HTTP_1_1)
-                        .code(200)
-                        .message("OK")
-                        .body(mockJsonResponse.toResponseBody())
-                        .build()
+        val responseObj =
+            gson.fromJson(
+                mockJsonResponse,
+                com.nexxlabs.chhotu.data.remote.model.ChatCompletionResponse::class.java
+            )
 
-        every { client.newCall(any()) } returns mockCall
-        every { mockCall.execute() } returns mockResponse
+        coEvery { client.getCompletions(any(), any()) } returns Response.success(responseObj)
 
         val result = aiIntentEngine.analyze(command)
 
