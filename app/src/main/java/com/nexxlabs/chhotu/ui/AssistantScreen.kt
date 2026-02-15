@@ -44,9 +44,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
@@ -68,7 +70,8 @@ fun AssistantScreen(
     val history by viewModel.commandHistory.collectAsState()
     val typedCommand by viewModel.typedCommand.collectAsState()
     val focusManager = LocalFocusManager.current
-    
+    val focusRequester = remember { FocusRequester() }
+
     Surface(
         modifier = modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -92,6 +95,10 @@ fun AssistantScreen(
             // Command History
             CommandHistorySection(
                 history = history,
+                onItemClick = { command ->
+                    viewModel.onTypedCommandChange(command)
+                    focusRequester.requestFocus()
+                },
                 modifier = Modifier.weight(1f)
             )
             
@@ -105,6 +112,7 @@ fun AssistantScreen(
                     viewModel.onTypedCommandSubmit()
                     focusManager.clearFocus()
                 },
+                focusRequester = focusRequester,
                 enabled = state !is AssistantState.Listening && state !is AssistantState.Processing
             )
             
@@ -123,10 +131,11 @@ fun AssistantScreen(
 
 @Composable
 private fun CommandInput(
-    value: String,
-    onValueChange: (String) -> Unit,
-    onSend: () -> Unit,
-    enabled: Boolean
+        value: String,
+        onValueChange: (String) -> Unit,
+        onSend: () -> Unit,
+        focusRequester: FocusRequester,
+        enabled: Boolean
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -150,16 +159,16 @@ private fun CommandInput(
                 unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
             )
         )
-        
+
         IconButton(
             onClick = onSend,
             enabled = enabled && value.isNotBlank(),
             modifier = Modifier
                 .size(48.dp)
                 .background(
-                    color = if (enabled && value.isNotBlank()) 
-                        MaterialTheme.colorScheme.primary 
-                    else 
+                    color = if (enabled && value.isNotBlank())
+                        MaterialTheme.colorScheme.primary
+                    else
                         MaterialTheme.colorScheme.surfaceVariant,
                     shape = CircleShape
                 )
@@ -233,6 +242,7 @@ private fun StatusDisplay(state: AssistantState) {
 @Composable
 private fun CommandHistorySection(
     history: List<CommandHistoryItem>,
+    onItemClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
@@ -243,23 +253,18 @@ private fun CommandHistorySection(
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(bottom = 12.dp)
             )
-            
+
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(vertical = 4.dp)
             ) {
                 items(history) { item ->
-                    HistoryItem(item = item)
+                    HistoryItem(item = item, onClick = { onItemClick(item.originalText) })
                 }
             }
         } else {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = "No commands yet",
                         style = MaterialTheme.typography.bodyLarge,
@@ -279,9 +284,10 @@ private fun CommandHistorySection(
 }
 
 @Composable
-private fun HistoryItem(item: CommandHistoryItem) {
+private fun HistoryItem(item: CommandHistoryItem, onClick: () -> Unit) {
     Card(
         shape = RoundedCornerShape(12.dp),
+        onClick = onClick,
         colors = CardDefaults.cardColors(
             containerColor = if (item.wasSuccessful) {
                 SuccessColor.copy(alpha = 0.1f)
@@ -312,10 +318,7 @@ private fun HistoryItem(item: CommandHistoryItem) {
 }
 
 @Composable
-private fun MicrophoneButton(
-    state: AssistantState,
-    onClick: () -> Unit
-) {
+private fun MicrophoneButton(state: AssistantState, onClick: () -> Unit) {
     val isListening = state is AssistantState.Listening
     val isProcessing = state is AssistantState.Processing
     

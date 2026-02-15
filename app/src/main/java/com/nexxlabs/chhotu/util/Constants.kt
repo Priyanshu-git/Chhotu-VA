@@ -2,10 +2,10 @@ package com.nexxlabs.chhotu.util
 
 object Constants {
     object LOG {
-        const val INPUT = "SPEECH"
-        const val DECISION = "DECISION"
-        const val EXECUTOR = "EXECUTOR"
-        const val AI_ENGINE = "AI_ENGINE"
+        const val INPUT = "CVA_SPEECH"
+        const val DECISION = "CVA_DECISION"
+        const val EXECUTOR = "CVA_EXECUTOR"
+        const val AI_ENGINE = "CVA_AI_ENGINE"
 
     }
 
