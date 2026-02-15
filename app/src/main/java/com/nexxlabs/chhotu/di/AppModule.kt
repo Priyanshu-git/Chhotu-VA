@@ -1,15 +1,22 @@
 package com.nexxlabs.chhotu.di
 
 import android.content.Context
+import com.google.gson.Gson
+import com.nexxlabs.chhotu.data.remote.OpenRouterService
 import com.nexxlabs.chhotu.domain.engine.CommandNormalizer
 import com.nexxlabs.chhotu.domain.engine.rule.BasicEngine
 import com.nexxlabs.chhotu.speech.SpeechInputManager
 import com.nexxlabs.chhotu.speech.TTSFeedbackManager
+import com.nexxlabs.chhotu.util.Constants.API.BASE_URL
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Singleton
 
 /**
@@ -27,44 +34,55 @@ object AppModule {
     fun provideCommandNormalizer(): CommandNormalizer {
         return CommandNormalizer()
     }
-    
+
     @Provides
     @Singleton
-    fun provideSpeechInputManager(
-        @ApplicationContext context: Context
-    ): SpeechInputManager {
+    fun provideSpeechInputManager(@ApplicationContext context: Context): SpeechInputManager {
         return SpeechInputManager(context)
     }
-    
+
     @Provides
     @Singleton
-    fun provideTTSFeedbackManager(
-        @ApplicationContext context: Context
-    ): TTSFeedbackManager {
+    fun provideTTSFeedbackManager(@ApplicationContext context: Context): TTSFeedbackManager {
         return TTSFeedbackManager(context)
     }
 
     @Provides
     @Singleton
-    fun provideGson(): com.google.gson.Gson {
-        return com.google.gson.Gson()
+    fun provideGson(): Gson {
+        return Gson()
     }
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(): okhttp3.OkHttpClient {
-        val logging = okhttp3.logging.HttpLoggingInterceptor().apply {
-            level = okhttp3.logging.HttpLoggingInterceptor.Level.BODY
+    fun provideOkHttpClient(): OkHttpClient {
+        val logging = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY
         }
-        return okhttp3.OkHttpClient.Builder()
+        return OkHttpClient.Builder()
             .addInterceptor(logging)
             .build()
     }
 
     @Provides
     @Singleton
-    fun provideBasicEngine(): BasicEngine{
+    fun provideBasicEngine(): BasicEngine {
         return BasicEngine()
     }
-}
 
+    @Provides
+    @Singleton
+    fun provideRetrofit(okHttpClient: OkHttpClient, gson: Gson): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create(gson))
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideOpenRouterService(retrofit: Retrofit): OpenRouterService {
+        return retrofit.create(OpenRouterService::class.java)
+    }
+}

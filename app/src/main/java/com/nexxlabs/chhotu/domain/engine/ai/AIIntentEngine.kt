@@ -3,6 +3,9 @@ package com.nexxlabs.chhotu.domain.engine.ai
 import android.util.Log
 import com.google.gson.Gson
 import com.nexxlabs.chhotu.BuildConfig
+import com.nexxlabs.chhotu.data.remote.OpenRouterService
+import com.nexxlabs.chhotu.data.remote.model.ChatCompletionRequest
+import com.nexxlabs.chhotu.data.remote.model.Message
 import com.nexxlabs.chhotu.domain.engine.EngineInterface
 import com.nexxlabs.chhotu.domain.engine.EngineUtil.fallbackIntent
 import com.nexxlabs.chhotu.domain.engine.ai.model.StructuredIntent
@@ -10,11 +13,6 @@ import com.nexxlabs.chhotu.domain.registry.AppRegistry
 import com.nexxlabs.chhotu.util.Constants
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
-import org.json.JSONObject
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -22,13 +20,12 @@ import javax.inject.Singleton
 class AIIntentEngine
 @Inject
 constructor(
-        private val client: OkHttpClient,
+        private val service: OpenRouterService,
         private val gson: Gson,
         private val appRegistry: AppRegistry
-): EngineInterface {
+) : EngineInterface {
 
     companion object {
-        private const val OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
         private val API_KEY = BuildConfig.OPEN_ROUTER_API_KEY
         private const val MODEL = "google/gemma-3-4b-it:free"
     }
@@ -70,52 +67,37 @@ constructor(
         """.trimIndent()
     }
 
-    override suspend fun analyze(command: String): StructuredIntent = withContext(Dispatchers.IO) {
-        try {
-            val jsonBody = JSONObject().apply {
-                put("model", MODEL)
-                put("messages", org.json.JSONArray().apply {
-                    put(JSONObject().apply {
-                        put("role", "user")
-                        put("content", getSystemPrompt() + "\n\nCommand: " + command)
-                    })
-                })
+    override suspend fun analyze(command: String): StructuredIntent =
+        withContext(Dispatchers.IO) {
+            try {
+                val messages = listOf(Message(
+                    role = "user",
+                    content = getSystemPrompt() + "\n\nCommand: " + command
+                ))
+                val request = ChatCompletionRequest(model = MODEL, messages = messages)
+
+                val response = service.getCompletions("Bearer $API_KEY", request)
+
+                if (!response.isSuccessful || response.body() == null) {
+                    Log.e(Constants.LOG.AI_ENGINE, "OpenRouter call failed: ${response.code()}")
+                    return@withContext fallbackIntent()
+                }
+
+                val chatResponse = response.body()!!
+                if (chatResponse.choices.isEmpty()) {
+                    return@withContext fallbackIntent()
+                }
+
+                val content = chatResponse.choices[0].message.content.trim()
+                parseResponseContent(content)
+            } catch (e: Exception) {
+                Log.e(Constants.LOG.AI_ENGINE, "AI Engine error", e)
+                fallbackIntent()
             }
-
-            val requestBody = jsonBody.toString().toRequestBody("application/json".toMediaType())
-
-            val request = Request.Builder()
-                .url(OPENROUTER_API_URL)
-                .addHeader("Authorization", "Bearer $API_KEY")
-                .addHeader("Content-Type", "application/json")
-                .post(requestBody)
-                .build()
-
-            val response = client.newCall(request).execute()
-            val responseBody = response.body?.string()
-
-            if (!response.isSuccessful || responseBody == null) {
-                Log.e(Constants.LOG.AI_ENGINE, "OpenRouter call failed: ${response.code}")
-                return@withContext fallbackIntent()
-            }
-
-            parseResponse(responseBody)
-
-        } catch (e: Exception) {
-            Log.e(Constants.LOG.AI_ENGINE, "AI Engine error", e)
-            fallbackIntent()
         }
-    }
 
-    private fun parseResponse(jsonResponse: String): StructuredIntent {
+    private fun parseResponseContent(content: String): StructuredIntent {
         return try {
-            val root = JSONObject(jsonResponse)
-            val content = root.getJSONArray("choices")
-                .getJSONObject(0)
-                .getJSONObject("message")
-                .getString("content")
-                .trim()
-                
             // Clean up if the model outputs markdown code blocks
             val cleanJson = if (content.startsWith("```json")) {
                  content.removePrefix("```json").removeSuffix("```").trim()
@@ -126,7 +108,7 @@ constructor(
             }
 
             val intent = gson.fromJson(cleanJson, StructuredIntent::class.java)
-            
+
             if (intent.confidence < 0.6) {
                 Log.w(Constants.LOG.AI_ENGINE, "Low confidence: ${intent.confidence}")
                 fallbackIntent()

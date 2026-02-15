@@ -401,6 +401,14 @@ class StaticAppRegistry @Inject constructor(
                     aliases = setOf("open", "play"),
                     contract = ActionContract(emptySet()),
                     primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.spotify.music")
+                ),
+                // Search Music
+                Action(
+                    id = "SEARCH",
+                    aliases = setOf("search","find", "play", "play song", "play music"),
+                    contract = ActionContract(setOf("query")),
+                    primaryExecutable = DeepLinkExecutable("https://open.spotify.com/search/{query}"),
+                    fallbackExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.spotify.music")
                 )
             )
         ),
