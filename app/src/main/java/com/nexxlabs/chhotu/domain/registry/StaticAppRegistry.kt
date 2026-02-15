@@ -220,7 +220,7 @@ class StaticAppRegistry @Inject constructor(
         "camera" to RegistryEntry(
             appId = "camera",
             displayName = "Camera",
-            packageName = "com.android.camera2", // Varies heavily. Better to use
+            packageName = null, // Varies heavily. Better to use
             // strict Action fallback
             aliases = setOf("camera", "photo", "picture"),
             actions = setOf(
