@@ -2,6 +2,7 @@ package com.nexxlabs.chhotu.ui
 
 import android.util.Log
 import app.cash.turbine.test
+import com.nexxlabs.chhotu.data.local.CommandHistoryRepository
 import com.nexxlabs.chhotu.domain.registry.model.CommandResult
 import com.nexxlabs.chhotu.domain.registry.model.ExecutionResult
 import com.nexxlabs.chhotu.execution.CommandExecutor
@@ -30,6 +31,7 @@ class AssistantViewModelTest {
     private lateinit var ttsFeedbackManager: TTSFeedbackManager
     private lateinit var viewModel: AssistantViewModel
     private val testDispatcher = StandardTestDispatcher()
+    private lateinit var  commandHistoryRepository:  CommandHistoryRepository
 
     @Before
     fun setup() {
@@ -42,8 +44,9 @@ class AssistantViewModelTest {
 
         commandExecutor = mockk()
         ttsFeedbackManager = mockk(relaxed = true)
+        commandHistoryRepository = mockk()
 
-        viewModel = AssistantViewModel(commandExecutor, ttsFeedbackManager)
+        viewModel = AssistantViewModel(commandExecutor, ttsFeedbackManager, commandHistoryRepository)
     }
 
     @After
