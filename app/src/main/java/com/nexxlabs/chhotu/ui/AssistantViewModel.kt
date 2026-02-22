@@ -3,6 +3,8 @@ package com.nexxlabs.chhotu.ui
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.nexxlabs.chhotu.data.local.CommandHistoryItem
+import com.nexxlabs.chhotu.data.local.CommandHistoryRepository
 import com.nexxlabs.chhotu.domain.registry.model.CommandResult
 import com.nexxlabs.chhotu.domain.registry.model.ExecutionResult
 import com.nexxlabs.chhotu.execution.CommandExecutor
@@ -11,8 +13,10 @@ import com.nexxlabs.chhotu.util.Constants
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -23,14 +27,16 @@ import javax.inject.Inject
 @HiltViewModel
 class AssistantViewModel @Inject constructor(
     private val commandExecutor: CommandExecutor,
-    private val ttsFeedbackManager: TTSFeedbackManager
+    private val ttsFeedbackManager: TTSFeedbackManager,
+    private val commandHistoryRepository: CommandHistoryRepository
 ) : ViewModel() {
     
     private val _state = MutableStateFlow<AssistantState>(AssistantState.Idle)
     val state: StateFlow<AssistantState> = _state.asStateFlow()
     
-    private val _commandHistory = MutableStateFlow<List<CommandHistoryItem>>(emptyList())
-    val commandHistory: StateFlow<List<CommandHistoryItem>> = _commandHistory.asStateFlow()
+    val commandHistory: StateFlow<List<CommandHistoryItem>> =
+        commandHistoryRepository.history
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     
     private val _typedCommand = MutableStateFlow("")
     val typedCommand: StateFlow<String> = _typedCommand.asStateFlow()
@@ -115,14 +121,12 @@ class AssistantViewModel @Inject constructor(
             viewModelScope.launch {
                 _state.value = AssistantState.Processing(originalCommand)
                 
-                // Specialized path: Modify the intent entities and re-execute
                 val updatedEntities = intent.entities.toMutableMap().apply {
                     put("contact", contact.name)
                     put("contact_number", contact.phoneNumber)
                 }
                 val updatedIntent = intent.copy(entities = updatedEntities)
                 
-                // Directly execute the intent without re-parsing
                 val result = commandExecutor.executeIntent(updatedIntent)
                 
                 val feedbackMessage = getFeedbackMessage(result)
@@ -175,12 +179,14 @@ class AssistantViewModel @Inject constructor(
     ) {
         val historyItem = CommandHistoryItem(
             originalText = originalText,
-            intentType = "AI Command", // Simplified
+            intentType = "AI Command",
             wasSuccessful = result is ExecutionResult.Success || result is ExecutionResult.Failure.AmbiguousContact,
             feedbackMessage = feedback
         )
         
-        _commandHistory.value = listOf(historyItem) + _commandHistory.value.take(9)
+        viewModelScope.launch {
+            commandHistoryRepository.addItem(historyItem)
+        }
     }
     
     fun resetToIdle() {
@@ -192,13 +198,3 @@ class AssistantViewModel @Inject constructor(
         ttsFeedbackManager.shutdown()
     }
 }
-
-/**
- * Represents a command in the history.
- */
-data class CommandHistoryItem(
-    val originalText: String,
-    val intentType: String,
-    val wasSuccessful: Boolean,
-    val feedbackMessage: String
-)

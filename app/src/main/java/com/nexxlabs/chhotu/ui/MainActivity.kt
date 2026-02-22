@@ -133,4 +133,9 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
         speechInputManager.destroy()
     }
+
+    override fun onResume() {
+        super.onResume()
+        checkPermissionsAndStartListening()
+    }
 }

@@ -1,6 +1,9 @@
 package com.nexxlabs.chhotu.di
 
 import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.preferencesDataStore
 import com.google.gson.Gson
 import com.nexxlabs.chhotu.data.remote.OpenRouterService
 import com.nexxlabs.chhotu.domain.engine.CommandNormalizer
@@ -19,6 +22,8 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Singleton
 
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "app_prefs")
+
 /**
  * Hilt module providing app-wide dependencies.
  * All dependencies are scoped to SingletonComponent for app lifetime.
@@ -29,6 +34,12 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object AppModule {
     
+    @Provides
+    @Singleton
+    fun provideDataStore(@ApplicationContext context: Context): DataStore<Preferences> {
+        return context.dataStore
+    }
+
     @Provides
     @Singleton
     fun provideCommandNormalizer(): CommandNormalizer {

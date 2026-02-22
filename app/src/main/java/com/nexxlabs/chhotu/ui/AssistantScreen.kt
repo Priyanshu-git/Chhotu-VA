@@ -59,6 +59,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.nexxlabs.chhotu.data.local.CommandHistoryItem
 import com.nexxlabs.chhotu.domain.model.Contact
 import com.nexxlabs.chhotu.ui.theme.ListeningColor
 import com.nexxlabs.chhotu.ui.theme.ProcessingColor
