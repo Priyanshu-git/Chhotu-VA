@@ -36,14 +36,14 @@ constructor(
 
         if (intent.intentType == IntentType.UNKNOWN) {
             Log.w(Constants.LOG.EXECUTOR, "Intent type is UNKNOWN")
-            return CommandResult(ExecutionResult.Failure.ActionNotSupported)
+            return CommandResult(ExecutionResult.Failure.ActionNotSupported, intent = intent)
         }
 
         val targetAppAlias =
             intent.targetApp
                 ?: run {
                     Log.w(Constants.LOG.EXECUTOR, "Target app alias is missing")
-                    return CommandResult(ExecutionResult.Failure.MissingRequiredEntities)
+                    return CommandResult(ExecutionResult.Failure.MissingRequiredEntities, intent = intent)
                 }
 
         // 1. Resolve registry entry by alias
@@ -51,7 +51,7 @@ constructor(
             appRegistry.findByAlias(targetAppAlias)
                 ?: run {
                     Log.w(Constants.LOG.EXECUTOR, "App not found in registry for alias: $targetAppAlias")
-                    return CommandResult(ExecutionResult.Failure.ActionNotSupported)
+                    return CommandResult(ExecutionResult.Failure.ActionNotSupported, intent = intent)
                 }
 
         Log.d(Constants.LOG.EXECUTOR, "Found registry entry: ${entry.displayName} (${entry.packageName})")
@@ -61,7 +61,8 @@ constructor(
             Log.w(Constants.LOG.EXECUTOR, "App not installed: ${entry.packageName}")
             return CommandResult(
                 ExecutionResult.Failure.AppNotInstalled,
-                displayName = entry.displayName
+                displayName = entry.displayName,
+                intent = intent
             )
         }
 
@@ -89,7 +90,8 @@ constructor(
             Log.e(Constants.LOG.EXECUTOR, "No suitable action found, including OPEN")
             return CommandResult(
                 ExecutionResult.Failure.ActionNotSupported, // Even OPEN action not found
-                displayName = entry.displayName
+                displayName = entry.displayName,
+                intent = intent
             )
         }
 
@@ -108,12 +110,13 @@ constructor(
             if (openAction != null && openAction != action) {
                 Log.d(Constants.LOG.EXECUTOR, "Executing fallback OPEN action")
                 val result = openAction.primaryExecutable.execute(context, emptyMap())
-                return CommandResult(result, displayName = entry.displayName, actionId = "OPEN")
+                return CommandResult(result, displayName = entry.displayName, actionId = "OPEN", intent = intent)
             }
             return CommandResult(
                 ExecutionResult.Failure.MissingRequiredEntities,
                 displayName = entry.displayName,
-                actionId = action.id
+                actionId = action.id,
+                intent = intent
             )
         }
 
@@ -132,7 +135,7 @@ constructor(
         }
 
         Log.d(Constants.LOG.EXECUTOR, "Execution result: $result")
-        return CommandResult(result, displayName = entry.displayName, actionId = action.id)
+        return CommandResult(result, displayName = entry.displayName, actionId = action.id, intent = intent)
     }
 
     private fun isPackageInstalled(packageName: String): Boolean {

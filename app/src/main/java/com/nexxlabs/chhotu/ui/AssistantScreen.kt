@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -29,6 +30,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContactPage
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -57,6 +59,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.nexxlabs.chhotu.domain.model.Contact
 import com.nexxlabs.chhotu.ui.theme.ListeningColor
 import com.nexxlabs.chhotu.ui.theme.ProcessingColor
 import com.nexxlabs.chhotu.ui.theme.SuccessColor
@@ -75,7 +78,9 @@ fun AssistantScreen(
 
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
-                modifier = Modifier.fillMaxSize().padding(24.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // App Header
@@ -88,15 +93,23 @@ fun AssistantScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Command History
-            CommandHistorySection(
+            // Command History or Contact Selection
+            if (state is AssistantState.SelectContact) {
+                ContactSelectionSection(
+                    contacts = (state as AssistantState.SelectContact).contacts,
+                    onContactSelected = { viewModel.onContactSelected(it) },
+                    modifier = Modifier.weight(1f)
+                )
+            } else {
+                CommandHistorySection(
                     history = history,
                     onItemClick = { command ->
                         viewModel.onTypedCommandChange(command)
                         focusRequester.requestFocus()
                     },
                     modifier = Modifier.weight(1f)
-            )
+                )
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -140,7 +153,9 @@ private fun CommandInput(
         OutlinedTextField(
                 value = value,
                 onValueChange = onValueChange,
-                modifier = Modifier.weight(1f).focusRequester(focusRequester),
+                modifier = Modifier
+                    .weight(1f)
+                    .focusRequester(focusRequester),
                 placeholder = { Text("Type your command...") },
                 enabled = enabled,
                 shape = RoundedCornerShape(24.dp),
@@ -164,13 +179,13 @@ private fun CommandInput(
                 enabled = enabled && value.isNotBlank(),
             modifier = Modifier
                 .size(48.dp)
-                                .background(
-                                        color =
-                                                if (enabled && value.isNotBlank())
-                                                        MaterialTheme.colorScheme.primary
-                                                else MaterialTheme.colorScheme.surfaceVariant,
-                                        shape = CircleShape
-                                )
+                .background(
+                    color =
+                        if (enabled && value.isNotBlank())
+                            MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.surfaceVariant,
+                    shape = CircleShape
+                )
         ) {
             Icon(
                     imageVector = Icons.AutoMirrored.Filled.Send,
@@ -211,6 +226,7 @@ private fun StatusDisplay(state: AssistantState) {
                         "Processing: \"${state.recognizedText}\"" to ProcessingColor
                 is AssistantState.Success -> state.feedbackMessage to SuccessColor
                 is AssistantState.Error -> state.errorMessage to MaterialTheme.colorScheme.error
+                is AssistantState.SelectContact -> "Which one?" to ProcessingColor
             }
 
     val animatedColor by
@@ -231,7 +247,9 @@ private fun StatusDisplay(state: AssistantState) {
     ) {
         Text(
                 text = statusText,
-                modifier = Modifier.fillMaxWidth().padding(20.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
                 style = MaterialTheme.typography.bodyLarge,
                 color = animatedColor,
                 textAlign = TextAlign.Center
@@ -286,30 +304,31 @@ private fun CommandHistorySection(
 @Composable
 private fun HistoryItem(item: CommandHistoryItem, onClick: () -> Unit) {
     Card(
-            shape = RoundedCornerShape(12.dp),
-            onClick = onClick,
-            colors =
-                    CardDefaults.cardColors(
-                            containerColor =
-                                    if (item.wasSuccessful) {
-                                        SuccessColor.copy(alpha = 0.1f)
-                                    } else {
-                                        MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
-                                    }
-                    )
+        shape = RoundedCornerShape(12.dp),
+        onClick = onClick,
+        colors =
+            CardDefaults.cardColors(
+                containerColor = if (item.wasSuccessful) {
+                    SuccessColor.copy(alpha = 0.1f)
+                } else {
+                    MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
+                }
+            )
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+        Column(modifier = Modifier
+            .fillMaxWidth()
+            .padding(12.dp)) {
             Text(
-                    text = "\"${item.originalText}\"",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface
+                text = "\"${item.originalText}\"",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                    text = item.feedbackMessage,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = item.feedbackMessage,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -357,26 +376,28 @@ private fun MicrophoneButton(state: AssistantState, onClick: () -> Unit) {
             Box(
                 modifier = Modifier
                     .size(120.dp)
-                                    .scale(scale)
-                                    .background(
-                                            brush =
-                                                    Brush.radialGradient(
-                                                            colors =
-                                                                    listOf(
-                                                                            ListeningColor.copy(
-                                                                                    alpha = 0.4f
-                                                                            ),
-                                                                            Color.Transparent
-                                                                    )
-                                                    ),
-                                            shape = CircleShape
+                    .scale(scale)
+                    .background(
+                        brush =
+                            Brush.radialGradient(
+                                colors =
+                                    listOf(
+                                        ListeningColor.copy(
+                                            alpha = 0.4f
+                                        ),
+                                        Color.Transparent
                                     )
+                            ),
+                        shape = CircleShape
+                    )
             )
         }
 
         FloatingActionButton(
                 onClick = onClick,
-                modifier = Modifier.size(80.dp).scale(if (isListening) scale else 1f),
+                modifier = Modifier
+                    .size(80.dp)
+                    .scale(if (isListening) scale else 1f),
                 shape = CircleShape,
                 containerColor = animatedButtonColor,
                 elevation =
@@ -396,6 +417,72 @@ private fun MicrophoneButton(state: AssistantState, onClick: () -> Unit) {
                     modifier = Modifier.size(36.dp),
                     tint = Color.White
             )
+        }
+    }
+}
+@Composable
+private fun ContactSelectionSection(
+    contacts: List<Contact>,
+    onContactSelected: (Contact) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = "Select a Contact",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(vertical = 4.dp)
+        ) {
+            items(contacts) { contact ->
+                ContactItem(contact = contact, onClick = { onContactSelected(contact) })
+            }
+        }
+    }
+}
+
+@Composable
+private fun ContactItem(
+    contact: Contact,
+    onClick: () -> Unit
+) {
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        onClick = onClick,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Start
+        ) {
+            Icon(
+                imageVector = Icons.Default.ContactPage,
+                contentDescription = "Select",
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Spacer(Modifier.width(8.dp))
+            Column {
+                Text(
+                    text = contact.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = contact.phoneNumber,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }

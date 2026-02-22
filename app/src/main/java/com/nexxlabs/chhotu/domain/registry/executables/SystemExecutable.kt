@@ -24,7 +24,12 @@ class SystemExecutable(
                 // Check if we have a contact name that needs resolution
                 val contactName = entities["contact"]
                 val contactNumber = if (contactName != null && contactManager != null) {
-                   contactManager.findContactByName(contactName)?.phoneNumber
+                    val foundContacts = contactManager.findContactsByName(contactName)
+                    when {
+                        foundContacts.isEmpty() -> null
+                        foundContacts.size == 1 -> foundContacts.first().phoneNumber
+                        else -> return ExecutionResult.Failure.AmbiguousContact(foundContacts)
+                    }
                 } else {
                     entities["contact_number"]
                 }

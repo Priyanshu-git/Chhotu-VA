@@ -12,15 +12,31 @@ class BasicEngine() : EngineInterface {
         if (tokens.size < 2) return EngineUtil.fallbackIntent()
 
         val command = tokens[0]
-        val appName = tokens.subList(1, tokens.size).joinToString(" ")
-        if (command == "open" || command == "launch" || command == "start")
-            return StructuredIntent(
-                intentType = IntentType.OPEN_APP,
-                targetApp = appName,
-                action = null,
-                entities = emptyMap(),
-                confidence = 1.0
-            )
-        else return EngineUtil.fallbackIntent()
+        val parameter = tokens.subList(1, tokens.size).joinToString(" ")
+        when (command) {
+            "open", "launch", "start" -> {
+                return StructuredIntent(
+                    intentType = IntentType.OPEN_APP,
+                    targetApp = parameter,
+                    action = null,
+                    entities = emptyMap(),
+                    confidence = 1.0
+                )
+            }
+
+            "call" -> {
+                return StructuredIntent(
+                    intentType = IntentType.SYSTEM_ACTION,
+                    targetApp = "Phone",
+                    action = "call",
+                    entities = mapOf("contact" to parameter),
+                    confidence = 1.0
+                )
+            }
+
+            else -> {
+                return EngineUtil.fallbackIntent()
+            }
+        }
     }
 }

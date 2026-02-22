@@ -27,7 +27,7 @@ constructor(
 
     companion object {
         private val API_KEY = BuildConfig.OPEN_ROUTER_API_KEY
-        private const val MODEL = "google/gemma-3-4b-it:free"
+        private const val MODEL = "x-ai/grok-4.1-fast"
     }
 
     private fun getSystemPrompt(): String {

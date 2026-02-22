@@ -6,6 +6,7 @@ import com.nexxlabs.chhotu.domain.engine.CommandNormalizer
 import com.nexxlabs.chhotu.domain.engine.ai.AIIntentEngine
 import com.nexxlabs.chhotu.domain.engine.ai.model.IntentType
 import com.nexxlabs.chhotu.domain.engine.rule.BasicEngine
+import com.nexxlabs.chhotu.domain.engine.ai.model.StructuredIntent
 import com.nexxlabs.chhotu.domain.registry.model.CommandResult
 import com.nexxlabs.chhotu.util.Constants
 import javax.inject.Inject
@@ -46,5 +47,13 @@ class CommandExecutor @Inject constructor(
         
         // 3. Resolve and Execute
         return capabilityResolver.resolveAndExecute(structuredIntent)
+    }
+
+    /**
+     * Directly execute a structured intent.
+     * This bypasses the normalization and parsing logic.
+     */
+    fun executeIntent(intent: StructuredIntent): CommandResult {
+        return capabilityResolver.resolveAndExecute(intent)
     }
 }

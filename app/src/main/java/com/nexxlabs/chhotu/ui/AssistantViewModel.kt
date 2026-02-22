@@ -84,14 +84,59 @@ class AssistantViewModel @Inject constructor(
         addToHistory(rawText, result.executionResult, feedbackMessage)
 
         // Update state
-        if (result.executionResult is ExecutionResult.Success) {
-            _state.value = AssistantState.Success(rawText, feedbackMessage)
-        } else {
-             _state.value = AssistantState.Error(rawText, feedbackMessage)
+        when (result.executionResult) {
+            is ExecutionResult.Success -> {
+                _state.value = AssistantState.Success(rawText, feedbackMessage)
+            }
+            is ExecutionResult.Failure.AmbiguousContact -> {
+                _state.value = AssistantState.SelectContact(
+                    result.executionResult.contacts,
+                    rawText,
+                    result.intent ?: throw IllegalStateException("Intent missing in AmbiguousContact result")
+                )
+            }
+            else -> {
+                _state.value = AssistantState.Error(rawText, feedbackMessage)
+            }
         }
         
-        // Return to idle
-        resetToIdle()
+        // Return to idle (only if not waiting for selection)
+        if (result.executionResult !is ExecutionResult.Failure.AmbiguousContact) {
+            resetToIdle()
+        }
+    }
+
+    fun onContactSelected(contact: com.nexxlabs.chhotu.domain.model.Contact) {
+        val currentState = _state.value
+        if (currentState is AssistantState.SelectContact) {
+            val originalCommand = currentState.originalCommand
+            val intent = currentState.intent
+            
+            viewModelScope.launch {
+                _state.value = AssistantState.Processing(originalCommand)
+                
+                // Specialized path: Modify the intent entities and re-execute
+                val updatedEntities = intent.entities.toMutableMap().apply {
+                    put("contact", contact.name)
+                    put("contact_number", contact.phoneNumber)
+                }
+                val updatedIntent = intent.copy(entities = updatedEntities)
+                
+                // Directly execute the intent without re-parsing
+                val result = commandExecutor.executeIntent(updatedIntent)
+                
+                val feedbackMessage = getFeedbackMessage(result)
+                ttsFeedbackManager.speak(feedbackMessage)
+                addToHistory(originalCommand, result.executionResult, feedbackMessage)
+
+                if (result.executionResult is ExecutionResult.Success) {
+                    _state.value = AssistantState.Success(originalCommand, feedbackMessage)
+                } else {
+                    _state.value = AssistantState.Error(originalCommand, feedbackMessage)
+                }
+                resetToIdle()
+            }
+        }
     }
 
     private fun getFeedbackMessage(result: CommandResult): String {
@@ -116,6 +161,8 @@ class AssistantViewModel @Inject constructor(
                     if (name != null) "I can't do that with $name." else "I can't do that yet."
             is ExecutionResult.Failure.MissingRequiredEntities ->
                     "I need more information to do that."
+            is ExecutionResult.Failure.AmbiguousContact ->
+                    "Multiple contacts found. Which one would you like to use?"
             is ExecutionResult.Failure.ExecutionException ->
                     "Something went wrong: ${result.executionResult.throwable.localizedMessage}"
         }
@@ -129,7 +176,7 @@ class AssistantViewModel @Inject constructor(
         val historyItem = CommandHistoryItem(
             originalText = originalText,
             intentType = "AI Command", // Simplified
-            wasSuccessful = result is ExecutionResult.Success,
+            wasSuccessful = result is ExecutionResult.Success || result is ExecutionResult.Failure.AmbiguousContact,
             feedbackMessage = feedback
         )
         

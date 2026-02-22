@@ -19,13 +19,13 @@ class ContactManager @Inject constructor(
 ) {
     
     /**
-     * Search for a contact by name.
-     * Returns the first match or null if not found.
+     * Search for contacts by name.
+     * Returns all matches that contain the query string.
      * Uses simple case-insensitive matching.
      */
-    fun findContactByName(name: String): Contact? {
+    fun findContactsByName(name: String): List<Contact> {
         val contacts = getAllContacts()
-        return contacts.firstOrNull { it.name.contains(name, ignoreCase = true) }
+        return contacts.filter { it.name.contains(name, ignoreCase = true) }
     }
     
     /**

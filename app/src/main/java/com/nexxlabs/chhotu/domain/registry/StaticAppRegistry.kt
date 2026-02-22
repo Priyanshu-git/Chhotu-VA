@@ -74,7 +74,7 @@ class StaticAppRegistry @Inject constructor(
         "phone" to RegistryEntry(
             appId = "phone",
             displayName = "Phone",
-            packageName = "com.google.android.dialer", // Targeted but SystemExecutable handles intent
+            packageName = null,
             aliases = setOf("phone", "call", "dialer"),
             actions = setOf(
                 Action(
