@@ -9,30 +9,25 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.ui.Modifier
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.core.content.ContextCompat
 import com.nexxlabs.chhotu.speech.SpeechInputManager
 import com.nexxlabs.chhotu.ui.theme.ChhotuTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
-/**
- * Main activity for Chhotu voice assistant.
- * Handles speech recognition result and permission requests.
- */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    
-    private val viewModel: AssistantViewModel by viewModels()
-    
+
+    private val assistantViewModel: AssistantViewModel by viewModels()
+    private val settingsViewModel: SettingsViewModel by viewModels()
+
     @Inject
     lateinit var speechInputManager: SpeechInputManager
-    
+
     companion object {
-        private val REQUIRED_PERMISSIONS = arrayOf(
+        private val ALL_PERMISSIONS = arrayOf(
             Manifest.permission.RECORD_AUDIO,
             Manifest.permission.READ_CONTACTS,
             Manifest.permission.CALL_PHONE,
@@ -40,12 +35,24 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-    // Permission launcher for multiple permissions
-    private val permissionLauncher = registerForActivityResult(
+    // Requests all permissions at launch; does not start the mic automatically.
+    private val launchPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
-        val recordAudioGranted = permissions[Manifest.permission.RECORD_AUDIO] ?: false
-        if (recordAudioGranted) {
+        if (permissions[Manifest.permission.RECORD_AUDIO] != true) {
+            Toast.makeText(
+                this,
+                "Microphone permission is required for voice commands",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
+    // Used when the user taps the mic button; starts listening after RECORD_AUDIO is granted.
+    private val micPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        if (permissions[Manifest.permission.RECORD_AUDIO] == true) {
             startSpeechRecognition()
         } else {
             Toast.makeText(
@@ -55,87 +62,70 @@ class MainActivity : ComponentActivity() {
             ).show()
         }
     }
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        
-        // Setup speech listener
-        speechInputManager.setListener(object : SpeechInputManager.SpeechRecognitionListener {
-            override fun onReadyForSpeech() {
-                // UI is already in Listening state from startSpeechRecognition
-            }
+        requestPermissionsOnLaunch()
+        setupSpeechListener()
 
-            override fun onBeginningOfSpeech() {}
-
-            override fun onRmsChanged(rmsdB: Float) {
-                // We could pass this to viewModel for volume animations later
-            }
-
-            override fun onEndOfSpeech() {}
-
-            override fun onSpeechRecognized(text: String) {
-                viewModel.onSpeechRecognized(text)
-            }
-
-            override fun onSpeechError(errorMessage: String) {
-                viewModel.onSpeechError(errorMessage)
-            }
-        })
-        
         setContent {
-            ChhotuTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    AssistantScreen(
-                        viewModel = viewModel,
-                        onMicClick = { checkPermissionsAndStartListening() },
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+            val themeMode by settingsViewModel.themeMode.collectAsState()
+            ChhotuTheme(themeMode = themeMode) {
+                AppNavGraph(
+                    assistantViewModel = assistantViewModel,
+                    settingsViewModel = settingsViewModel,
+                    onMicClick = ::handleMicClick
+                )
             }
         }
     }
-    
-    private fun checkPermissionsAndStartListening() {
-        val missingPermissions = REQUIRED_PERMISSIONS.filter {
+
+    private fun requestPermissionsOnLaunch() {
+        val missing = ALL_PERMISSIONS.filter {
             ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
         }
-
-        if (missingPermissions.isEmpty()) {
-            startSpeechRecognition()
-        } else {
-            // Check if we should show rationale for any of the permissions
-            val shouldShowRationale = missingPermissions.any {
-                shouldShowRequestPermissionRationale(it)
-            }
-
-            if (shouldShowRationale) {
-                Toast.makeText(
-                    this,
-                    "Some permissions are needed for the assistant to fully function",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-            permissionLauncher.launch(missingPermissions.toTypedArray())
+        if (missing.isNotEmpty()) {
+            launchPermissionLauncher.launch(missing.toTypedArray())
         }
     }
-    
+
+    private fun setupSpeechListener() {
+        speechInputManager.setListener(object : SpeechInputManager.SpeechRecognitionListener {
+            override fun onReadyForSpeech() {}
+            override fun onBeginningOfSpeech() {}
+            override fun onRmsChanged(rmsdB: Float) {}
+            override fun onEndOfSpeech() {}
+            override fun onSpeechRecognized(text: String) {
+                assistantViewModel.onSpeechRecognized(text)
+            }
+            override fun onSpeechError(errorMessage: String) {
+                assistantViewModel.onSpeechError(errorMessage)
+            }
+        })
+    }
+
+    private fun handleMicClick() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
+            == PackageManager.PERMISSION_GRANTED
+        ) {
+            startSpeechRecognition()
+        } else {
+            micPermissionLauncher.launch(arrayOf(Manifest.permission.RECORD_AUDIO))
+        }
+    }
+
     private fun startSpeechRecognition() {
-        viewModel.onStartListening()
+        assistantViewModel.onStartListening()
         try {
             speechInputManager.startListening()
         } catch (e: Exception) {
-            viewModel.onSpeechError("Speech recognition is not available on this device")
+            assistantViewModel.onSpeechError("Speech recognition is not available on this device")
         }
     }
 
     override fun onDestroy() {
         super.onDestroy()
         speechInputManager.destroy()
-    }
-
-    override fun onResume() {
-        super.onResume()
-        checkPermissionsAndStartListening()
     }
 }

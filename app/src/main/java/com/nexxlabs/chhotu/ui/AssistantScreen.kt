@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContactPage
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
@@ -69,6 +70,7 @@ import com.nexxlabs.chhotu.ui.theme.SuccessColor
 fun AssistantScreen(
         viewModel: AssistantViewModel,
         onMicClick: () -> Unit,
+        onSettingsClick: () -> Unit,
         modifier: Modifier = Modifier
 ) {
     val state by viewModel.state.collectAsState()
@@ -85,7 +87,7 @@ fun AssistantScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // App Header
-            AppHeader()
+            AppHeader(onSettingsClick = onSettingsClick)
 
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -200,19 +202,34 @@ private fun CommandInput(
 }
 
 @Composable
-private fun AppHeader() {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
+private fun AppHeader(onSettingsClick: () -> Unit) {
+    Box(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.align(Alignment.Center),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
                 text = "Chhotu",
                 style = MaterialTheme.typography.headlineLarge,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold
-        )
-        Text(
+            )
+            Text(
                 text = "Your Voice Assistant",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+            )
+        }
+        IconButton(
+            onClick = onSettingsClick,
+            modifier = Modifier.align(Alignment.CenterEnd)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Settings,
+                contentDescription = "Settings",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 

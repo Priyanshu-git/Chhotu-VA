@@ -57,7 +57,7 @@ class CapabilityResolverTest {
 
                 val result = capabilityResolver.resolveAndExecute(intent)
 
-                assertEquals(CommandResult(ExecutionResult.Failure.ActionNotSupported), result)
+                assertEquals(CommandResult(ExecutionResult.Failure.ActionNotSupported, intent = intent), result)
         }
 
         @Test
@@ -73,7 +73,7 @@ class CapabilityResolverTest {
 
                 val result = capabilityResolver.resolveAndExecute(intent)
 
-                assertEquals(CommandResult(ExecutionResult.Failure.MissingRequiredEntities), result)
+                assertEquals(CommandResult(ExecutionResult.Failure.MissingRequiredEntities, intent = intent), result)
         }
 
         @Test
@@ -91,7 +91,7 @@ class CapabilityResolverTest {
 
                 val result = capabilityResolver.resolveAndExecute(intent)
 
-                assertEquals(CommandResult(ExecutionResult.Failure.ActionNotSupported), result)
+                assertEquals(CommandResult(ExecutionResult.Failure.ActionNotSupported, intent = intent), result)
         }
 
         @Test
@@ -123,7 +123,8 @@ class CapabilityResolverTest {
                 assertEquals(
                         CommandResult(
                                 ExecutionResult.Failure.AppNotInstalled,
-                                displayName = "MyApp"
+                                displayName = "MyApp",
+                                intent = intent
                         ),
                         result
                 )
@@ -168,7 +169,8 @@ class CapabilityResolverTest {
                         CommandResult(
                                 ExecutionResult.Success,
                                 displayName = "Music App",
-                                actionId = "PLAY"
+                                actionId = "PLAY",
+                                intent = intent
                         ),
                         result
                 )
@@ -214,7 +216,8 @@ class CapabilityResolverTest {
                         CommandResult(
                                 ExecutionResult.Success,
                                 displayName = "Music App",
-                                actionId = "OPEN"
+                                actionId = "OPEN",
+                                intent = intent
                         ),
                         result
                 )
@@ -249,7 +252,8 @@ class CapabilityResolverTest {
                 assertEquals(
                         CommandResult(
                                 ExecutionResult.Failure.ActionNotSupported,
-                                displayName = "Music App"
+                                displayName = "Music App",
+                                intent = intent
                         ),
                         result
                 )
@@ -304,7 +308,8 @@ class CapabilityResolverTest {
                         CommandResult(
                                 ExecutionResult.Success,
                                 displayName = "Music App",
-                                actionId = "OPEN"
+                                actionId = "OPEN",
+                                intent = intent
                         ),
                         result
                 )

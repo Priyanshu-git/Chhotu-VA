@@ -20,7 +20,7 @@ class AppDataStore @Inject constructor(
 
     companion object Keys {
         val COMMAND_HISTORY = stringPreferencesKey("command_history")
-
+        val THEME_MODE = stringPreferencesKey("theme_mode")
     }
 
     fun getStringFlow(key: Preferences.Key<String>, default: String = ""): Flow<String> {
