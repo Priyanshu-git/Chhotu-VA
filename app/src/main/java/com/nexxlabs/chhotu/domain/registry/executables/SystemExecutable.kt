@@ -21,9 +21,11 @@ class SystemExecutable(
             var dataUri: Uri? = null
             
             if (uriScheme != null) {
-                // Check if we have a contact name that needs resolution
+                // If a phone number was already resolved (e.g. user selected a contact), use it directly
                 val contactName = entities["contact"]
-                val contactNumber = if (contactName != null && contactManager != null) {
+                val contactNumber = if (entities.containsKey("contact_number")) {
+                    entities["contact_number"]
+                } else if (contactName != null && contactManager != null) {
                     val foundContacts = contactManager.findContactsByName(contactName)
                     when {
                         foundContacts.isEmpty() -> null
@@ -31,7 +33,7 @@ class SystemExecutable(
                         else -> return ExecutionResult.Failure.AmbiguousContact(foundContacts)
                     }
                 } else {
-                    entities["contact_number"]
+                    null
                 }
                 
                 if (contactNumber != null) {

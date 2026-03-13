@@ -62,7 +62,33 @@ class ContactManager @Inject constructor(
                 }
             }
         } ?: Log.e(Constants.LOG.INPUT, "Could not query contacts cursor is null")
-        
-        return contactList
+
+        return deduplicateContacts(contactList)
+    }
+
+    companion object {
+        /**
+         * Strips country code prefix to get the local number for comparison.
+         * E.g. "+919876543210" and "9876543210" both yield "9876543210".
+         */
+        internal fun normalizeNumber(number: String): String {
+            val digits = number.removePrefix("+")
+            // Remove country code prefix (1-3 digits) if the remaining part is 10 digits
+            if (digits.length > 10) {
+                val localPart = digits.takeLast(10)
+                if (localPart.length == 10) return localPart
+            }
+            return digits
+        }
+
+        /**
+         * Deduplicates contacts that share the same name and underlying phone number.
+         * When duplicates exist, keeps the entry with the country code (longest number).
+         */
+        internal fun deduplicateContacts(contacts: List<Contact>): List<Contact> {
+            return contacts
+                .groupBy { it.name.lowercase() to normalizeNumber(it.phoneNumber) }
+                .map { (_, group) -> group.maxBy { it.phoneNumber.length } }
+        }
     }
 }
