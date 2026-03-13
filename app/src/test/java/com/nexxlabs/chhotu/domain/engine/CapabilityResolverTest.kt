@@ -6,6 +6,7 @@ import com.nexxlabs.chhotu.domain.engine.ai.model.StructuredIntent
 import com.nexxlabs.chhotu.domain.platform.AppInstallationChecker
 import com.nexxlabs.chhotu.domain.registry.AppRegistry
 import com.nexxlabs.chhotu.domain.registry.Executable
+import com.nexxlabs.chhotu.domain.registry.executables.DeepLinkExecutable
 import com.nexxlabs.chhotu.domain.registry.model.Action
 import com.nexxlabs.chhotu.domain.registry.model.ActionContract
 import com.nexxlabs.chhotu.domain.registry.model.CommandResult
@@ -86,7 +87,7 @@ class CapabilityResolverTest {
     }
 
     @Test
-    fun `resolveAndExecute returns AppNotInstalled when package not found`() {
+    fun `resolveAndExecute returns AppNotInstalled when package not found and no deep link`() {
         val intent = StructuredIntent(
             intentType = IntentType.OPEN_APP,
             targetApp = "myapp",
@@ -95,12 +96,20 @@ class CapabilityResolverTest {
             confidence = 1.0
         )
 
+        val openExecutable = mockk<Executable>()
+
         val registryEntry = RegistryEntry(
             appId = "myapp",
             displayName = "MyApp",
             packageName = "com.myapp",
             aliases = setOf("myapp"),
-            actions = emptySet()
+            actions = setOf(
+                Action(
+                    id = "OPEN",
+                    contract = ActionContract(requiredEntities = emptySet()),
+                    primaryExecutable = openExecutable
+                )
+            )
         )
 
         every { appRegistry.findByAlias("myapp") } returns registryEntry
@@ -116,6 +125,7 @@ class CapabilityResolverTest {
             ),
             result
         )
+        verify(exactly = 0) { openExecutable.execute(any()) }
     }
 
     @Test
@@ -287,5 +297,96 @@ class CapabilityResolverTest {
             result
         )
         verify { openExecutable.execute(emptyMap()) }
+    }
+
+    @Test
+    fun `resolveAndExecute uses deep link when app not installed and primary is DeepLinkExecutable`() {
+        val intent = StructuredIntent(
+            intentType = IntentType.APP_ACTION,
+            targetApp = "youtube",
+            action = "SEARCH",
+            entities = mapOf("query" to "kotlin tutorials"),
+            confidence = 1.0
+        )
+
+        val deepLink = mockk<DeepLinkExecutable>()
+        every { deepLink.execute(any()) } returns ExecutionResult.Success
+
+        val searchAction = Action(
+            id = "SEARCH",
+            contract = ActionContract(requiredEntities = setOf("query")),
+            primaryExecutable = deepLink
+        )
+
+        val registryEntry = RegistryEntry(
+            appId = "youtube",
+            displayName = "YouTube",
+            packageName = "com.google.android.youtube",
+            aliases = setOf("youtube"),
+            actions = setOf(searchAction)
+        )
+
+        every { appRegistry.findByAlias("youtube") } returns registryEntry
+        every { appInstallationChecker.isInstalled("com.google.android.youtube") } returns false
+
+        val result = capabilityResolver.resolveAndExecute(intent)
+
+        assertEquals(
+            CommandResult(
+                ExecutionResult.Success,
+                displayName = "YouTube",
+                actionId = "SEARCH",
+                intent = intent
+            ),
+            result
+        )
+        verify { deepLink.execute(mapOf("query" to "kotlin tutorials")) }
+    }
+
+    @Test
+    fun `resolveAndExecute uses deep link fallback when app not installed and fallback is DeepLinkExecutable`() {
+        val intent = StructuredIntent(
+            intentType = IntentType.APP_ACTION,
+            targetApp = "google",
+            action = "SEARCH",
+            entities = mapOf("query" to "weather"),
+            confidence = 1.0
+        )
+
+        val primaryExecutable = mockk<Executable>()
+        val deepLinkFallback = mockk<DeepLinkExecutable>()
+        every { deepLinkFallback.execute(any()) } returns ExecutionResult.Success
+
+        val searchAction = Action(
+            id = "SEARCH",
+            contract = ActionContract(requiredEntities = setOf("query")),
+            primaryExecutable = primaryExecutable,
+            fallbackExecutable = deepLinkFallback
+        )
+
+        val registryEntry = RegistryEntry(
+            appId = "google",
+            displayName = "Google",
+            packageName = "com.google.android.googlequicksearchbox",
+            aliases = setOf("google"),
+            actions = setOf(searchAction)
+        )
+
+        every { appRegistry.findByAlias("google") } returns registryEntry
+        every { appInstallationChecker.isInstalled("com.google.android.googlequicksearchbox") } returns false
+
+        val result = capabilityResolver.resolveAndExecute(intent)
+
+        assertEquals(
+            CommandResult(
+                ExecutionResult.Success,
+                displayName = "Google",
+                actionId = "SEARCH",
+                intent = intent
+            ),
+            result
+        )
+        verify { deepLinkFallback.execute(mapOf("query" to "weather")) }
+        verify(exactly = 0) { primaryExecutable.execute(any()) }
     }
 }

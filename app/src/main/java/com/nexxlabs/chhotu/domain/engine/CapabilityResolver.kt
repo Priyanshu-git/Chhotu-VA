@@ -5,6 +5,7 @@ import com.nexxlabs.chhotu.domain.engine.ai.model.IntentType
 import com.nexxlabs.chhotu.domain.engine.ai.model.StructuredIntent
 import com.nexxlabs.chhotu.domain.platform.AppInstallationChecker
 import com.nexxlabs.chhotu.domain.registry.AppRegistry
+import com.nexxlabs.chhotu.domain.registry.executables.DeepLinkExecutable
 import com.nexxlabs.chhotu.domain.registry.model.Action
 import com.nexxlabs.chhotu.domain.registry.model.CommandResult
 import com.nexxlabs.chhotu.domain.registry.model.ExecutionResult
@@ -42,13 +43,9 @@ class CapabilityResolver @Inject constructor(
         Log.d(Constants.LOG.EXECUTOR, "Found registry entry: ${entry.displayName} (${entry.packageName})")
 
         // 2. Check app installation (if packageName is present)
-        if (entry.packageName != null && !appInstallationChecker.isInstalled(entry.packageName)) {
+        val isInstalled = entry.packageName == null || appInstallationChecker.isInstalled(entry.packageName)
+        if (!isInstalled) {
             Log.w(Constants.LOG.EXECUTOR, "App not installed: ${entry.packageName}")
-            return CommandResult(
-                ExecutionResult.Failure.AppNotInstalled,
-                displayName = entry.displayName,
-                intent = intent
-            )
         }
 
         // 3. Resolve action
@@ -77,7 +74,22 @@ class CapabilityResolver @Inject constructor(
 
         Log.d(Constants.LOG.EXECUTOR, "Selected action: ${action.id}")
 
-        // 4. Validate ActionContract
+        // 4. If app not installed, try deep link fallback before giving up
+        if (!isInstalled) {
+            val deepLink = findDeepLink(action)
+            if (deepLink != null) {
+                Log.d(Constants.LOG.EXECUTOR, "App not installed, using deep link fallback for ${entry.displayName}")
+                val result = deepLink.execute(intent.entities)
+                return CommandResult(result, displayName = entry.displayName, actionId = action.id, intent = intent)
+            }
+            return CommandResult(
+                ExecutionResult.Failure.AppNotInstalled,
+                displayName = entry.displayName,
+                intent = intent
+            )
+        }
+
+        // 6. Validate ActionContract
         if (!validateContract(action, intent.entities)) {
             Log.w(Constants.LOG.EXECUTOR, "Contract validation failed for ${entry.displayName} : ${action.id}. Falling back to OPEN.")
             val openAction = entry.actions.find { it.id.equals("OPEN", ignoreCase = true) }
@@ -94,11 +106,11 @@ class CapabilityResolver @Inject constructor(
             )
         }
 
-        // 5. Execute primary executable
+        // 7. Execute primary executable
         Log.d(Constants.LOG.EXECUTOR, "Executing primary for ${entry.displayName} : ${action.id} with entities: ${intent.entities}")
         var result = action.primaryExecutable.execute(intent.entities)
 
-        // 6. On runtime failure -> execute fallback
+        // 8. On runtime failure -> execute fallback
         if (result is ExecutionResult.Failure && action.fallbackExecutable != null) {
             Log.w(Constants.LOG.EXECUTOR, "Primary failed, executing fallback for ${entry.displayName} : ${action.id}")
             result = action.fallbackExecutable.execute(intent.entities)
@@ -106,6 +118,11 @@ class CapabilityResolver @Inject constructor(
 
         Log.d(Constants.LOG.EXECUTOR, "Execution result: $result")
         return CommandResult(result, displayName = entry.displayName, actionId = action.id, intent = intent)
+    }
+
+    private fun findDeepLink(action: Action): DeepLinkExecutable? {
+        return action.primaryExecutable as? DeepLinkExecutable
+            ?: action.fallbackExecutable as? DeepLinkExecutable
     }
 
     private fun validateContract(action: Action, entities: Map<String, String>): Boolean {
