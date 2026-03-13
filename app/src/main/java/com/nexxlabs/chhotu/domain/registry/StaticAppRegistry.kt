@@ -1,11 +1,11 @@
 package com.nexxlabs.chhotu.domain.registry
 
-import android.content.Context
 import android.content.Intent
 import android.provider.AlarmClock
 import android.provider.MediaStore
 import android.provider.Settings
-import com.nexxlabs.chhotu.domain.engine.ContactManager
+import com.nexxlabs.chhotu.domain.platform.IntentLauncher
+import com.nexxlabs.chhotu.domain.platform.SystemServiceProvider
 import com.nexxlabs.chhotu.domain.registry.executables.DeepLinkExecutable
 import com.nexxlabs.chhotu.domain.registry.executables.FlashlightExecutable
 import com.nexxlabs.chhotu.domain.registry.executables.IntentExecutable
@@ -14,13 +14,15 @@ import com.nexxlabs.chhotu.domain.registry.executables.VolumeExecutable
 import com.nexxlabs.chhotu.domain.registry.model.Action
 import com.nexxlabs.chhotu.domain.registry.model.ActionContract
 import com.nexxlabs.chhotu.domain.registry.model.RegistryEntry
-import dagger.hilt.android.qualifiers.ApplicationContext
+import com.nexxlabs.chhotu.domain.repository.ContactRepository
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class StaticAppRegistry @Inject constructor(
-    @ApplicationContext private val context: Context, private val contactManager: ContactManager
+    private val intentLauncher: IntentLauncher,
+    private val contactRepository: ContactRepository,
+    private val systemServiceProvider: SystemServiceProvider
 ) : AppRegistry {
 
     private val registry = mapOf(
@@ -35,14 +37,14 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "launch", "start"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.whatsapp")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.whatsapp", intentLauncher)
                 ),
                 Action(
                     id = "SEND_MESSAGE",
                     aliases = setOf("send message", "text", "message", "send"),
                     contract = ActionContract(setOf("contact", "text")),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_SEND, "com.whatsapp"), // Simplified, typically needs specialized intent for specific contact
-                    fallbackExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.whatsapp")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_SEND, "com.whatsapp", intentLauncher), // Simplified, typically needs specialized intent for specific contact
+                    fallbackExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.whatsapp", intentLauncher)
                 )
             )
         ),
@@ -58,14 +60,14 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "launch", "start"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.google.android.youtube")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.google.android.youtube", intentLauncher)
                 ),
                 Action(
                     id = "SEARCH",
                     aliases = setOf("search", "find", "look for", "play"),
                     contract = ActionContract(setOf("query")),
-                    primaryExecutable = DeepLinkExecutable("https://www.youtube.com/results?search_query={query}"),
-                    fallbackExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.google.android.youtube")
+                    primaryExecutable = DeepLinkExecutable("https://www.youtube.com/results?search_query={query}", intentLauncher),
+                    fallbackExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.google.android.youtube", intentLauncher)
                 )
             )
         ),
@@ -81,8 +83,8 @@ class StaticAppRegistry @Inject constructor(
                     id = "CALL",
                     aliases = setOf("call", "dial", "ring"),
                     contract = ActionContract(setOf("contact")),
-                    primaryExecutable = SystemExecutable(Intent.ACTION_CALL, "tel", contactManager),
-                    fallbackExecutable = SystemExecutable(Intent.ACTION_DIAL, "tel", contactManager) 
+                    primaryExecutable = SystemExecutable(Intent.ACTION_CALL, "tel", contactRepository, intentLauncher),
+                    fallbackExecutable = SystemExecutable(Intent.ACTION_DIAL, "tel", contactRepository, intentLauncher) 
                 )
             )
         ),
@@ -98,7 +100,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "SEND_MESSAGE",
                     aliases = setOf("send message", "text", "send sms", "message"),
                     contract = ActionContract(setOf("contact", "text")),
-                    primaryExecutable = SystemExecutable(Intent.ACTION_SENDTO, "smsto", contactManager), // Uses SystemExecutable for Uri based intent
+                    primaryExecutable = SystemExecutable(Intent.ACTION_SENDTO, "smsto", contactRepository, intentLauncher), // Uses SystemExecutable for Uri based intent
                     fallbackExecutable = null
                 )
             )
@@ -115,8 +117,8 @@ class StaticAppRegistry @Inject constructor(
                     id = "SEARCH",
                     aliases = setOf("search", "google", "find", "look up"),
                     contract = ActionContract(setOf("query")),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_WEB_SEARCH, "com.google.android.googlequicksearchbox"),
-                    fallbackExecutable = DeepLinkExecutable("https://www.google.com/search?q={query}")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_WEB_SEARCH, "com.google.android.googlequicksearchbox", intentLauncher),
+                    fallbackExecutable = DeepLinkExecutable("https://www.google.com/search?q={query}", intentLauncher)
                 )
             )
         ),
@@ -132,19 +134,19 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "launch", "show"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Settings.ACTION_SETTINGS, "com.android.settings")
+                    primaryExecutable = IntentExecutable(Settings.ACTION_SETTINGS, "com.android.settings", intentLauncher)
                 ),
                 Action(
                     id = "WIFI_SETTINGS",
                     aliases = setOf("wifi", "network", "internet"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Settings.ACTION_WIFI_SETTINGS, "com.android.settings")
+                    primaryExecutable = IntentExecutable(Settings.ACTION_WIFI_SETTINGS, "com.android.settings", intentLauncher)
                 ),
                 Action(
                     id = "BLUETOOTH_SETTINGS",
                     aliases = setOf("bluetooth", "bt"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Settings.ACTION_BLUETOOTH_SETTINGS, "com.android.settings")
+                    primaryExecutable = IntentExecutable(Settings.ACTION_BLUETOOTH_SETTINGS, "com.android.settings", intentLauncher)
                 )
             )
         ),
@@ -160,19 +162,19 @@ class StaticAppRegistry @Inject constructor(
                     id = "INCREASE",
                     aliases = setOf("increase", "turn up", "raise", "louder"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = VolumeExecutable(VolumeExecutable.VolumeAction.INCREASE)
+                    primaryExecutable = VolumeExecutable(VolumeExecutable.VolumeAction.INCREASE, systemServiceProvider)
                 ),
                 Action(
                     id = "DECREASE",
                     aliases = setOf("decrease", "turn down", "lower", "softer", "quieter"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = VolumeExecutable(VolumeExecutable.VolumeAction.DECREASE)
+                    primaryExecutable = VolumeExecutable(VolumeExecutable.VolumeAction.DECREASE, systemServiceProvider)
                 ),
                 Action(
                     id = "MUTE",
                     aliases = setOf("mute", "silence", "silent", "shut up"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = VolumeExecutable(VolumeExecutable.VolumeAction.MUTE)
+                    primaryExecutable = VolumeExecutable(VolumeExecutable.VolumeAction.MUTE, systemServiceProvider)
                 )
             )
         ),
@@ -188,13 +190,13 @@ class StaticAppRegistry @Inject constructor(
                     id = "TURN_ON",
                     aliases = setOf("on", "enable", "start", "open", "turn on"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = FlashlightExecutable(FlashlightExecutable.FlashlightAction.ON)
+                    primaryExecutable = FlashlightExecutable(FlashlightExecutable.FlashlightAction.ON, systemServiceProvider)
                 ),
                 Action(
                     id = "TURN_OFF",
                     aliases = setOf("off", "disable", "stop", "close", "turn off"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = FlashlightExecutable(FlashlightExecutable.FlashlightAction.OFF)
+                    primaryExecutable = FlashlightExecutable(FlashlightExecutable.FlashlightAction.OFF, systemServiceProvider)
                 )
             )
         ),
@@ -210,8 +212,8 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "launch", "show"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(AlarmClock.ACTION_SHOW_ALARMS, "com.google.android.deskclock"),
-                    fallbackExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.google.android.deskclock")
+                    primaryExecutable = IntentExecutable(AlarmClock.ACTION_SHOW_ALARMS, "com.google.android.deskclock", intentLauncher),
+                    fallbackExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.google.android.deskclock", intentLauncher)
                 )
             )
         ),
@@ -228,8 +230,8 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "launch", "take photo"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA, null),
-                    fallbackExecutable = SystemExecutable(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA) // Generic Intent
+                    primaryExecutable = IntentExecutable(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA, null, intentLauncher),
+                    fallbackExecutable = SystemExecutable(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA, intentLauncher = intentLauncher)
                 )
             )
         ),
@@ -244,7 +246,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "launch"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.instagram.android")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.instagram.android", intentLauncher)
                 )
             )
         ),
@@ -260,7 +262,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "launch"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.facebook.katana")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.facebook.katana", intentLauncher)
                 )
             )
         ),
@@ -276,7 +278,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "launch"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.twitter.android")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.twitter.android", intentLauncher)
                 )
             )
         ),
@@ -292,7 +294,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "launch"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "org.telegram.messenger")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "org.telegram.messenger", intentLauncher)
                 )
             )
         ),
@@ -308,7 +310,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "launch"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.snapchat.android")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.snapchat.android", intentLauncher)
                 )
             )
         ),
@@ -324,7 +326,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "launch"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.instagram.barcelona")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.instagram.barcelona", intentLauncher)
                 )
             )
         ),
@@ -340,13 +342,13 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "launch"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.android.chrome")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.android.chrome", intentLauncher)
                 ),
                 Action(
                     id = "SEARCH",
                     aliases = setOf("search", "find"),
                     contract = ActionContract(setOf("query")),
-                    primaryExecutable = DeepLinkExecutable("https://www.google.com/search?q={query}")
+                    primaryExecutable = DeepLinkExecutable("https://www.google.com/search?q={query}", intentLauncher)
                 )
             )
         ),
@@ -362,7 +364,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "launch"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.google.android.gm")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.google.android.gm", intentLauncher)
                 )
             )
         ),
@@ -378,13 +380,13 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "launch"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.google.android.apps.maps")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.google.android.apps.maps", intentLauncher)
                 ),
                 Action(
                     id = "SEARCH",
                     aliases = setOf("search", "navigate"),
                     contract = ActionContract(setOf("query")),
-                    primaryExecutable = DeepLinkExecutable("geo:0,0?q={query}")
+                    primaryExecutable = DeepLinkExecutable("geo:0,0?q={query}", intentLauncher)
                 )
             )
         ),
@@ -400,15 +402,15 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "play"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.spotify.music")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.spotify.music", intentLauncher)
                 ),
                 // Search Music
                 Action(
                     id = "SEARCH",
                     aliases = setOf("search","find", "play", "play song", "play music"),
                     contract = ActionContract(setOf("query")),
-                    primaryExecutable = DeepLinkExecutable("https://open.spotify.com/search/{query}"),
-                    fallbackExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.spotify.music")
+                    primaryExecutable = DeepLinkExecutable("https://open.spotify.com/search/{query}", intentLauncher),
+                    fallbackExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.spotify.music", intentLauncher)
                 )
             )
         ),
@@ -424,7 +426,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "launch"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.netflix.mediaclient")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.netflix.mediaclient", intentLauncher)
                 )
             )
         ),
@@ -440,7 +442,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "order food"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.application.zomato")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.application.zomato", intentLauncher)
                 )
             )
         ),
@@ -456,7 +458,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "order food"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "in.swiggy.android")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "in.swiggy.android", intentLauncher)
                 )
             )
         ),
@@ -472,7 +474,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "pay"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.google.android.apps.nbu.paisa.user")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.google.android.apps.nbu.paisa.user", intentLauncher)
                 )
             )
         ),
@@ -488,7 +490,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "book cab"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.ubercab")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.ubercab", intentLauncher)
                 )
             )
         ),
@@ -504,7 +506,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "launch"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.openai.chatgpt")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.openai.chatgpt", intentLauncher)
                 )
             )
         ),
@@ -519,7 +521,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "launch"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.amazon.avod.thirdpartyclient")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.amazon.avod.thirdpartyclient", intentLauncher)
                 )
             )
         ),
@@ -535,7 +537,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "launch"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "in.startv.hotstar")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "in.startv.hotstar", intentLauncher)
                 )
             )
         ),
@@ -551,7 +553,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "launch"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.jio.media.ondemand")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.jio.media.ondemand", intentLauncher)
                 )
             )
         ),
@@ -567,7 +569,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "shop"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "in.amazon.mShop.android.shopping")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "in.amazon.mShop.android.shopping", intentLauncher)
                 )
             )
         ),
@@ -583,7 +585,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "shop"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.flipkart.android")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.flipkart.android", intentLauncher)
                 )
             )
         ),
@@ -599,7 +601,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "shop"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.myntra.android")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.myntra.android", intentLauncher)
                 )
             )
         ),
@@ -615,7 +617,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "order groceries"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.grofers.customerapp")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.grofers.customerapp", intentLauncher)
                 )
             )
         ),
@@ -631,7 +633,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "order groceries"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.zeptoconsumerapp")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.zeptoconsumerapp", intentLauncher)
                 )
             )
         ),
@@ -647,7 +649,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "order groceries"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.bigbasket.mobileapp")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.bigbasket.mobileapp", intentLauncher)
                 )
             )
         ),
@@ -663,7 +665,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "pay"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.phonepe.app")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.phonepe.app", intentLauncher)
                 )
             )
         ),
@@ -679,7 +681,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "pay"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "net.one97.paytm")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "net.one97.paytm", intentLauncher)
                 )
             )
         ),
@@ -695,7 +697,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "book cab"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.olacabs.customer")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.olacabs.customer", intentLauncher)
                 )
             )
         ),
@@ -711,7 +713,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.truecaller")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.truecaller", intentLauncher)
                 )
             )
         ),
@@ -727,7 +729,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "join meeting"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "us.zoom.videomeetings")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "us.zoom.videomeetings", intentLauncher)
                 )
             )
         ),
@@ -743,7 +745,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "design"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.canva.editor")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.canva.editor", intentLauncher)
                 )
             )
         ),
@@ -758,7 +760,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "launch"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.google.android.apps.photos")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.google.android.apps.photos", intentLauncher)
                 )
             )
         ),
@@ -774,7 +776,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "launch"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.google.android.apps.docs")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.google.android.apps.docs", intentLauncher)
                 )
             )
         ),
@@ -790,7 +792,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "translate"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.google.android.apps.translate")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.google.android.apps.translate", intentLauncher)
                 )
             )
         ),
@@ -806,7 +808,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "shop"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.meesho.supply")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.meesho.supply", intentLauncher)
                 )
             )
         ),
@@ -822,7 +824,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "shop"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.ril.ajio")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.ril.ajio", intentLauncher)
                 )
             )
         ),
@@ -838,7 +840,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "order groceries"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "in.swiggy.android")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "in.swiggy.android", intentLauncher)
                 )
             )
         ),
@@ -854,7 +856,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "pay"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "in.org.npci.upiapp")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "in.org.npci.upiapp", intentLauncher)
                 )
             )
         ),
@@ -870,7 +872,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "book bike"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.rapido.passenger")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.rapido.passenger", intentLauncher)
                 )
             )
         ),
@@ -886,7 +888,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "book train"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "cris.org.in.prs.ima")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "cris.org.in.prs.ima", intentLauncher)
                 )
             )
         ),
@@ -902,7 +904,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "book travel"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.makemytrip")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.makemytrip", intentLauncher)
                 )
             )
         ),
@@ -918,7 +920,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "play video"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.mxtech.videoplayer.ad")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.mxtech.videoplayer.ad", intentLauncher)
                 )
             )
         ),
@@ -934,7 +936,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "in.mohalla.sharechat")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "in.mohalla.sharechat", intentLauncher)
                 )
             )
         ),
@@ -950,7 +952,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.eterno.shortvideos")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.eterno.shortvideos", intentLauncher)
                 )
             )
         ),
@@ -966,7 +968,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "read news"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.eterno")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.eterno", intentLauncher)
                 )
             )
         ),
@@ -982,7 +984,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "read news"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.nis.app")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.nis.app", intentLauncher)
                 )
             )
         ),
@@ -998,7 +1000,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "join meeting"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.microsoft.teams")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.microsoft.teams", intentLauncher)
                 )
             )
         ),
@@ -1014,7 +1016,7 @@ class StaticAppRegistry @Inject constructor(
                     id = "OPEN",
                     aliases = setOf("open", "edit video"),
                     contract = ActionContract(emptySet()),
-                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.lemon.lvoverseas")
+                    primaryExecutable = IntentExecutable(Intent.ACTION_MAIN, "com.lemon.lvoverseas", intentLauncher)
                 )
             )
         )

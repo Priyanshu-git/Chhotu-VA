@@ -5,7 +5,11 @@ import com.nexxlabs.chhotu.domain.engine.EngineUtil
 import com.nexxlabs.chhotu.domain.engine.ai.model.IntentType
 import com.nexxlabs.chhotu.domain.engine.ai.model.StructuredIntent
 
-class BasicEngine() : EngineInterface {
+import javax.inject.Inject
+import javax.inject.Singleton
+
+@Singleton
+class BasicEngine @Inject constructor() : EngineInterface {
 
     override suspend fun analyze(command: String): StructuredIntent {
         val tokens = command.split(" ")

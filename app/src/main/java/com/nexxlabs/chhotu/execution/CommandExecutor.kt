@@ -1,59 +1,24 @@
 package com.nexxlabs.chhotu.execution
 
-import android.util.Log
-import com.nexxlabs.chhotu.domain.engine.CapabilityResolver
-import com.nexxlabs.chhotu.domain.engine.CommandNormalizer
-import com.nexxlabs.chhotu.domain.engine.ai.AIIntentEngine
-import com.nexxlabs.chhotu.domain.engine.ai.model.IntentType
-import com.nexxlabs.chhotu.domain.engine.rule.BasicEngine
 import com.nexxlabs.chhotu.domain.engine.ai.model.StructuredIntent
 import com.nexxlabs.chhotu.domain.registry.model.CommandResult
-import com.nexxlabs.chhotu.util.Constants
+import com.nexxlabs.chhotu.domain.usecase.ExecuteVoiceCommandUseCase
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Central command executor that orchestrates the command processing pipeline.
- *
- * Pipeline:
- * 1. Normalize Input (CommandNormalizer)
- * 2. Extract Intent (AIIntentEngine)
- * 3. Resolve and Execute (CapabilityResolver)
+ * Central command executor. Delegates to ExecuteVoiceCommandUseCase.
+ * Kept as a thin facade for backward compatibility.
  */
 @Singleton
 class CommandExecutor @Inject constructor(
-    private val commandNormalizer: CommandNormalizer,
-    private val aiIntentEngine: AIIntentEngine,
-    private val basicEngine: BasicEngine,
-    private val capabilityResolver: CapabilityResolver
+    private val executeVoiceCommandUseCase: ExecuteVoiceCommandUseCase
 ) {
-    
-    /**
-     * Execute a raw voice command.
-     * 
-     * @param rawCommand The raw text from speech recognition
-     * @return CommandResult
-     */
     suspend fun execute(rawCommand: String): CommandResult {
-        // 1. Normalize
-        val normalizedText = commandNormalizer.normalize(rawCommand)
-        Log.d(Constants.LOG.DECISION, "Normalized: $normalizedText")
-        
-        // 2. AI Intent Extraction
-        var structuredIntent = basicEngine.analyze(normalizedText)
-        if (structuredIntent.intentType == IntentType.UNKNOWN)
-            structuredIntent = aiIntentEngine.analyze(normalizedText)
-        Log.d(Constants.LOG.DECISION, "Intent: $structuredIntent")
-        
-        // 3. Resolve and Execute
-        return capabilityResolver.resolveAndExecute(structuredIntent)
+        return executeVoiceCommandUseCase.execute(rawCommand)
     }
 
-    /**
-     * Directly execute a structured intent.
-     * This bypasses the normalization and parsing logic.
-     */
     fun executeIntent(intent: StructuredIntent): CommandResult {
-        return capabilityResolver.resolveAndExecute(intent)
+        return executeVoiceCommandUseCase.executeIntent(intent)
     }
 }

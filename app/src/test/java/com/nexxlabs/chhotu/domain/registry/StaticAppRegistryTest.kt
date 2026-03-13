@@ -1,7 +1,8 @@
 package com.nexxlabs.chhotu.domain.registry
 
-import android.content.Context
-import com.nexxlabs.chhotu.domain.engine.ContactManager
+import com.nexxlabs.chhotu.domain.platform.IntentLauncher
+import com.nexxlabs.chhotu.domain.platform.SystemServiceProvider
+import com.nexxlabs.chhotu.domain.repository.ContactRepository
 import io.mockk.mockk
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -11,15 +12,17 @@ import org.junit.Test
 
 class StaticAppRegistryTest {
 
-    private lateinit var context: Context
-    private lateinit var contactManager: ContactManager
+    private lateinit var intentLauncher: IntentLauncher
+    private lateinit var contactRepository: ContactRepository
+    private lateinit var systemServiceProvider: SystemServiceProvider
     private lateinit var staticAppRegistry: StaticAppRegistry
 
     @Before
     fun setup() {
-        context = mockk()
-        contactManager = mockk()
-        staticAppRegistry = StaticAppRegistry(context, contactManager)
+        intentLauncher = mockk()
+        contactRepository = mockk()
+        systemServiceProvider = mockk()
+        staticAppRegistry = StaticAppRegistry(intentLauncher, contactRepository, systemServiceProvider)
     }
 
     @Test

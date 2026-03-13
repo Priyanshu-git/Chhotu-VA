@@ -7,6 +7,7 @@ import com.nexxlabs.chhotu.domain.engine.ai.model.IntentType
 import com.nexxlabs.chhotu.domain.engine.ai.model.StructuredIntent
 import com.nexxlabs.chhotu.domain.registry.model.CommandResult
 import com.nexxlabs.chhotu.domain.registry.model.ExecutionResult
+import com.nexxlabs.chhotu.domain.usecase.FeedbackMessageGenerator
 import com.nexxlabs.chhotu.execution.CommandExecutor
 import com.nexxlabs.chhotu.speech.TTSFeedbackManager
 import io.mockk.coEvery
@@ -36,6 +37,7 @@ class AssistantViewModelTest {
     private lateinit var viewModel: AssistantViewModel
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var commandHistoryRepository: CommandHistoryRepository
+    private lateinit var feedbackMessageGenerator: FeedbackMessageGenerator
 
     @Before
     fun setup() {
@@ -49,11 +51,12 @@ class AssistantViewModelTest {
         commandExecutor = mockk()
         ttsFeedbackManager = mockk(relaxed = true)
         commandHistoryRepository = mockk(relaxed = true)
+        feedbackMessageGenerator = FeedbackMessageGenerator()
 
         // Mock history flow
         every { commandHistoryRepository.history } returns flowOf(emptyList())
 
-        viewModel = AssistantViewModel(commandExecutor, ttsFeedbackManager, commandHistoryRepository)
+        viewModel = AssistantViewModel(commandExecutor, ttsFeedbackManager, commandHistoryRepository, feedbackMessageGenerator)
     }
 
     @After

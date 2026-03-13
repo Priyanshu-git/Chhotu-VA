@@ -5,9 +5,8 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import com.google.gson.Gson
+import com.nexxlabs.chhotu.BuildConfig
 import com.nexxlabs.chhotu.data.remote.OpenRouterService
-import com.nexxlabs.chhotu.domain.engine.CommandNormalizer
-import com.nexxlabs.chhotu.domain.engine.rule.BasicEngine
 import com.nexxlabs.chhotu.speech.SpeechInputManager
 import com.nexxlabs.chhotu.speech.TTSFeedbackManager
 import com.nexxlabs.chhotu.util.Constants.API.BASE_URL
@@ -24,26 +23,14 @@ import javax.inject.Singleton
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "app_prefs")
 
-/**
- * Hilt module providing app-wide dependencies.
- * All dependencies are scoped to SingletonComponent for app lifetime.
- * 
- * Note: Executor bindings are in ExecutorModule using @Binds @IntoSet.
- */
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
-    
+
     @Provides
     @Singleton
     fun provideDataStore(@ApplicationContext context: Context): DataStore<Preferences> {
         return context.dataStore
-    }
-
-    @Provides
-    @Singleton
-    fun provideCommandNormalizer(): CommandNormalizer {
-        return CommandNormalizer()
     }
 
     @Provides
@@ -68,17 +55,15 @@ object AppModule {
     @Singleton
     fun provideOkHttpClient(): OkHttpClient {
         val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = if (BuildConfig.DEBUG) {
+                HttpLoggingInterceptor.Level.BODY
+            } else {
+                HttpLoggingInterceptor.Level.NONE
+            }
         }
         return OkHttpClient.Builder()
             .addInterceptor(logging)
             .build()
-    }
-
-    @Provides
-    @Singleton
-    fun provideBasicEngine(): BasicEngine {
-        return BasicEngine()
     }
 
     @Provides
