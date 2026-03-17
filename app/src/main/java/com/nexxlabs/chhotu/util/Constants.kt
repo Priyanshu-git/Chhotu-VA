@@ -1,5 +1,7 @@
 package com.nexxlabs.chhotu.util
 
+import com.nexxlabs.chhotu.BuildConfig
+
 object Constants {
     object LOG {
         const val INPUT = "CVA_SPEECH"
@@ -10,6 +12,6 @@ object Constants {
     }
 
     object API {
-        const val BASE_URL = "https://openrouter.ai/"
+        const val BASE_URL = BuildConfig.LLM_BASE_URL
     }
 }

@@ -2,7 +2,7 @@ package com.nexxlabs.chhotu.domain.engine.ai
 
 import android.util.Log
 import com.google.gson.Gson
-import com.nexxlabs.chhotu.data.remote.OpenRouterService
+import com.nexxlabs.chhotu.data.remote.LLMService
 import com.nexxlabs.chhotu.domain.engine.ai.model.IntentType
 import com.nexxlabs.chhotu.domain.registry.AppRegistry
 import com.nexxlabs.chhotu.domain.registry.model.RegistryEntry
@@ -19,7 +19,7 @@ import retrofit2.Response
 
 class AIIntentEngineTest {
 
-    private lateinit var client: OpenRouterService
+    private lateinit var client: LLMService
     private lateinit var gson: Gson
     private lateinit var appRegistry: AppRegistry
     private lateinit var aiIntentEngine: AIIntentEngine

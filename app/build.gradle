@@ -13,7 +13,8 @@ if (localPropertiesFile.exists()) {
     localProperties.load(new FileInputStream(localPropertiesFile))
 }
 
-def myApiKey = localProperties.getProperty("OPEN_ROUTER_API_KEY", "")
+def myApiKey = localProperties.getProperty("LLM_API_KEY", "")
+def myBaseUrl = localProperties.getProperty("LLM_BASE_URL", "")
 
 
 android {
@@ -29,7 +30,8 @@ android {
         versionCode 1
         versionName "1.0"
 
-        buildConfigField "String", "OPEN_ROUTER_API_KEY", "\"${myApiKey}\""
+        buildConfigField "String", "LLM_API_KEY", "\"${myApiKey}\""
+        buildConfigField "String", "LLM_BASE_URL", "\"${myBaseUrl}\""
         
         testInstrumentationRunner "com.nexxlabs.chhotu.CustomTestRunner"
     }

@@ -3,7 +3,7 @@ package com.nexxlabs.chhotu.domain.engine.ai
 import android.util.Log
 import com.google.gson.Gson
 import com.nexxlabs.chhotu.BuildConfig
-import com.nexxlabs.chhotu.data.remote.OpenRouterService
+import com.nexxlabs.chhotu.data.remote.LLMService
 import com.nexxlabs.chhotu.data.remote.model.ChatCompletionRequest
 import com.nexxlabs.chhotu.data.remote.model.Message
 import com.nexxlabs.chhotu.domain.engine.EngineInterface
@@ -20,14 +20,14 @@ import javax.inject.Singleton
 class AIIntentEngine
 @Inject
 constructor(
-        private val service: OpenRouterService,
+        private val service: LLMService,
         private val gson: Gson,
         private val appRegistry: AppRegistry
 ) : EngineInterface {
 
     companion object {
-        private val API_KEY = BuildConfig.OPEN_ROUTER_API_KEY
-        private const val MODEL = "x-ai/grok-4.1-fast"
+        private val API_KEY = BuildConfig.LLM_API_KEY
+        private const val MODEL = "openai/gpt-4o-mini"
     }
 
     private fun getSystemPrompt(): String {
@@ -82,7 +82,7 @@ constructor(
                 val response = service.getCompletions("Bearer $API_KEY", request)
 
                 if (!response.isSuccessful || response.body() == null) {
-                    Log.e(Constants.LOG.AI_ENGINE, "OpenRouter call failed: ${response.code()}")
+                    Log.e(Constants.LOG.AI_ENGINE, "LLM call failed: ${response.code()}")
                     return@withContext fallbackIntent()
                 }
 

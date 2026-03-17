@@ -6,7 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import com.google.gson.Gson
 import com.nexxlabs.chhotu.BuildConfig
-import com.nexxlabs.chhotu.data.remote.OpenRouterService
+import com.nexxlabs.chhotu.data.remote.LLMService
 import com.nexxlabs.chhotu.speech.SpeechInputManager
 import com.nexxlabs.chhotu.speech.TTSFeedbackManager
 import com.nexxlabs.chhotu.util.Constants.API.BASE_URL
@@ -78,7 +78,7 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideOpenRouterService(retrofit: Retrofit): OpenRouterService {
-        return retrofit.create(OpenRouterService::class.java)
+    fun provideLLMService(retrofit: Retrofit): LLMService {
+        return retrofit.create(LLMService::class.java)
     }
 }
