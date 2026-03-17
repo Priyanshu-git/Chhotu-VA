@@ -1,5 +1,9 @@
 package com.nexxlabs.chhotu.ui
 
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -23,14 +27,22 @@ fun AppNavGraph(
             startDestination = "assistant",
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable("assistant") {
+            composable(
+                "assistant",
+                exitTransition = { slideOutHorizontally { -it / 3 } + fadeOut() },
+                popEnterTransition = { slideInHorizontally { -it / 3 } + fadeIn() }
+            ) {
                 AssistantScreen(
                     viewModel = assistantViewModel,
                     onMicClick = onMicClick,
                     onSettingsClick = { navController.navigate("settings") }
                 )
             }
-            composable("settings") {
+            composable(
+                "settings",
+                enterTransition = { slideInHorizontally { it } + fadeIn() },
+                popExitTransition = { slideOutHorizontally { it } + fadeOut() }
+            ) {
                 SettingsScreen(
                     viewModel = settingsViewModel,
                     onBack = { navController.popBackStack() }

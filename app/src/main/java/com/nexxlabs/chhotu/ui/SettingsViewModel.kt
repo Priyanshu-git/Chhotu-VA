@@ -21,8 +21,15 @@ class SettingsViewModel @Inject constructor(
     val themeMode: StateFlow<ThemeMode> = settingsRepository.themeMode
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ThemeMode.SYSTEM)
 
+    val speechLanguage: StateFlow<String> = settingsRepository.speechLanguage
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "System default")
+
     fun setThemeMode(mode: ThemeMode) {
         viewModelScope.launch { settingsRepository.setThemeMode(mode) }
+    }
+
+    fun setSpeechLanguage(language: String) {
+        viewModelScope.launch { settingsRepository.setSpeechLanguage(language) }
     }
 
     fun clearHistory() {

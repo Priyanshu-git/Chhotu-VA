@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nexxlabs.chhotu.data.local.CommandHistoryItem
 import com.nexxlabs.chhotu.data.local.CommandHistoryRepository
+import com.nexxlabs.chhotu.data.local.SettingsRepository
 import com.nexxlabs.chhotu.domain.registry.model.ExecutionResult
 import com.nexxlabs.chhotu.domain.usecase.FeedbackMessageGenerator
 import com.nexxlabs.chhotu.execution.CommandExecutor
@@ -25,7 +26,8 @@ class AssistantViewModel @Inject constructor(
     private val commandExecutor: CommandExecutor,
     private val ttsFeedbackManager: TTSFeedbackManager,
     private val commandHistoryRepository: CommandHistoryRepository,
-    private val feedbackMessageGenerator: FeedbackMessageGenerator
+    private val feedbackMessageGenerator: FeedbackMessageGenerator,
+    private val settingsRepository: SettingsRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<AssistantState>(AssistantState.Idle)
@@ -37,6 +39,24 @@ class AssistantViewModel @Inject constructor(
 
     private val _typedCommand = MutableStateFlow("")
     val typedCommand: StateFlow<String> = _typedCommand.asStateFlow()
+
+    private val _showOnboarding = MutableStateFlow(false)
+    val showOnboarding: StateFlow<Boolean> = _showOnboarding.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            settingsRepository.hasCompletedOnboarding.collect { completed ->
+                _showOnboarding.value = !completed
+            }
+        }
+    }
+
+    fun completeOnboarding() {
+        viewModelScope.launch {
+            settingsRepository.setOnboardingCompleted()
+            _showOnboarding.value = false
+        }
+    }
 
     fun onTypedCommandChange(text: String) {
         _typedCommand.value = text
@@ -69,6 +89,12 @@ class AssistantViewModel @Inject constructor(
         viewModelScope.launch {
             delay(3000)
             _state.value = AssistantState.Idle
+        }
+    }
+
+    fun deleteHistoryItem(item: CommandHistoryItem) {
+        viewModelScope.launch {
+            commandHistoryRepository.removeItem(item)
         }
     }
 

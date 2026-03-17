@@ -46,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.nexxlabs.chhotu.BuildConfig
 import com.nexxlabs.chhotu.ui.theme.ThemeMode
@@ -96,7 +97,7 @@ fun SettingsScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
                 )
             )
         }
@@ -165,9 +166,9 @@ fun SettingsScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Info,
-                                contentDescription = null,
+                                contentDescription = "Chhotu",
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(28.dp)
+                                modifier = Modifier.size(48.dp)
                             )
                             Column {
                                 Text(
@@ -239,7 +240,7 @@ private fun SettingsSection(
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
         )
         Card(
             shape = RoundedCornerShape(12.dp),
@@ -299,7 +300,7 @@ private fun ThemeChip(
                 text = label,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.fillMaxWidth(),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                textAlign = TextAlign.Center
             )
         },
         modifier = modifier,

@@ -38,6 +38,7 @@ class AssistantViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var commandHistoryRepository: CommandHistoryRepository
     private lateinit var feedbackMessageGenerator: FeedbackMessageGenerator
+    private lateinit var settingsRepository: com.nexxlabs.chhotu.data.local.SettingsRepository
 
     @Before
     fun setup() {
@@ -52,11 +53,14 @@ class AssistantViewModelTest {
         ttsFeedbackManager = mockk(relaxed = true)
         commandHistoryRepository = mockk(relaxed = true)
         feedbackMessageGenerator = FeedbackMessageGenerator()
+        settingsRepository = mockk(relaxed = true)
 
         // Mock history flow
         every { commandHistoryRepository.history } returns flowOf(emptyList())
+        // Mock onboarding flow
+        every { settingsRepository.hasCompletedOnboarding } returns flowOf(true)
 
-        viewModel = AssistantViewModel(commandExecutor, ttsFeedbackManager, commandHistoryRepository, feedbackMessageGenerator)
+        viewModel = AssistantViewModel(commandExecutor, ttsFeedbackManager, commandHistoryRepository, feedbackMessageGenerator, settingsRepository)
     }
 
     @After

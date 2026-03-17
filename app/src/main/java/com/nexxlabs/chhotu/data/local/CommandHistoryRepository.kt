@@ -42,6 +42,15 @@ class CommandHistoryRepository @Inject constructor(
     }
 
     /**
+     * Remove a single item from the history by matching its timestamp.
+     */
+    suspend fun removeItem(item: CommandHistoryItem) {
+        val current = history.first()
+        val updated = current.filter { it.timestamp != item.timestamp }
+        appDataStore.putString(AppDataStore.COMMAND_HISTORY, serialize(updated))
+    }
+
+    /**
      * Clear all command history.
      */
     suspend fun clear() {

@@ -21,6 +21,8 @@ class AppDataStore @Inject constructor(
     companion object Keys {
         val COMMAND_HISTORY = stringPreferencesKey("command_history")
         val THEME_MODE = stringPreferencesKey("theme_mode")
+        val ONBOARDING_COMPLETED = stringPreferencesKey("onboarding_completed")
+        val SPEECH_LANGUAGE = stringPreferencesKey("speech_language")
     }
 
     fun getStringFlow(key: Preferences.Key<String>, default: String = ""): Flow<String> {

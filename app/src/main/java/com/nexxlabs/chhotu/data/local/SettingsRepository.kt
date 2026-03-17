@@ -17,4 +17,19 @@ class SettingsRepository @Inject constructor(
     suspend fun setThemeMode(mode: ThemeMode) {
         appDataStore.putString(AppDataStore.THEME_MODE, mode.name)
     }
+
+    val hasCompletedOnboarding: Flow<Boolean> = appDataStore
+        .getStringFlow(AppDataStore.ONBOARDING_COMPLETED, "false")
+        .map { it == "true" }
+
+    suspend fun setOnboardingCompleted() {
+        appDataStore.putString(AppDataStore.ONBOARDING_COMPLETED, "true")
+    }
+
+    val speechLanguage: Flow<String> = appDataStore
+        .getStringFlow(AppDataStore.SPEECH_LANGUAGE, "System default")
+
+    suspend fun setSpeechLanguage(language: String) {
+        appDataStore.putString(AppDataStore.SPEECH_LANGUAGE, language)
+    }
 }
