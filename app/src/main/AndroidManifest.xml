@@ -38,6 +38,11 @@
         <package android:name="com.google.android.apps.photos" />
         <package android:name="com.google.android.apps.docs" /> <!-- Drive -->
         <package android:name="com.google.android.apps.translate" />
+        <package android:name="com.google.android.calendar" />
+        <package android:name="com.google.android.calculator" />
+        <package android:name="com.google.android.apps.nbu.files" />
+        <package android:name="com.google.android.apps.tachyon" /> <!-- Meet -->
+        <package android:name="com.google.android.deskclock" /> <!-- Clock -->
 
         <!-- Music / Video -->
         <package android:name="com.spotify.music" />
