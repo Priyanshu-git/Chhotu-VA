@@ -98,6 +98,9 @@ dependencies {
     implementation libs.hilt.navigation
     kapt libs.hilt.compiler
 
+    implementation libs.glance.appwidget
+    implementation libs.glance.material3
+
     // Retrofit, Gson, OkHttp
     implementation(libs.retrofit)
     implementation(libs.retrofit.gson)

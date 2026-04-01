@@ -67,7 +67,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         requestPermissionsOnLaunch()
-        setupSpeechListener()
 
         setContent {
             val themeMode by settingsViewModel.themeMode.collectAsState()
@@ -79,6 +78,11 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+//        setupSpeechListener()
     }
 
     private fun requestPermissionsOnLaunch() {

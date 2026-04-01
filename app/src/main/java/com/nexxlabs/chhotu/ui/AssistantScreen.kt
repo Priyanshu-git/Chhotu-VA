@@ -815,7 +815,7 @@ private fun WaveformDecoration() {
 // ── Contact Selection Section ───────────────────────────────────────────────────
 
 @Composable
-private fun ContactSelectionSection(
+internal fun ContactSelectionSection(
     contacts: List<Contact>,
     originalCommand: String,
     onContactSelected: (Contact) -> Unit
@@ -846,7 +846,7 @@ private fun ContactSelectionSection(
 }
 
 @Composable
-private fun ContactItem(contact: Contact, onClick: () -> Unit) {
+internal fun ContactItem(contact: Contact, onClick: () -> Unit) {
     Card(
         shape = RoundedCornerShape(12.dp),
         onClick = onClick,

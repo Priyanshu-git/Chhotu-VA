@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Chhotu</string>
+    <string name="widget_description">Chhotu voice assistant</string>
 </resources>
